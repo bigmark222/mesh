@@ -1,0 +1,24 @@
+[package]
+name = "mesh-shell"
+description = "Generate shells around 3D meshes using SDF-based offset"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords = ["mesh", "3d", "shell", "offset", "sdf"]
+categories = ["graphics", "algorithms"]
+
+[dependencies]
+mesh-repair = { path = "../mesh-repair" }
+nalgebra.workspace = true
+hashbrown.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+parry3d.workspace = true
+mesh_to_sdf.workspace = true
+fast-surface-nets.workspace = true
+rayon.workspace = true
+kiddo.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

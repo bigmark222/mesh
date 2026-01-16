@@ -1,0 +1,23 @@
+[package]
+name = "mesh-repair"
+description = "Triangle mesh repair utilities: hole filling, winding consistency, validation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords = ["mesh", "3d", "stl", "repair", "triangles"]
+categories = ["graphics", "algorithms"]
+
+[dependencies]
+nalgebra.workspace = true
+stl_io.workspace = true
+tobj.workspace = true
+zip.workspace = true
+quick-xml.workspace = true
+hashbrown.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+approx.workspace = true
