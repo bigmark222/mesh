@@ -265,14 +265,26 @@ mod types;
 mod edge_cases;
 
 pub mod adjacency;
+pub mod assembly;
+pub mod boolean;
 pub mod components;
 pub mod decimate;
 pub mod holes;
 pub mod intersect;
 pub mod io;
+pub mod lattice;
+pub mod measure;
+pub mod morph;
+pub mod multiscan;
+pub mod printability;
+pub mod region;
+pub mod registration;
 pub mod remesh;
 pub mod repair;
+pub mod scan;
+pub mod slice;
 pub mod subdivide;
+pub mod template;
 pub mod thickness;
 pub mod validate;
 pub mod winding;
@@ -285,7 +297,11 @@ pub use types::{Mesh, Triangle, Vertex, VertexColor};
 pub use adjacency::MeshAdjacency;
 
 // Re-export commonly used functions
-pub use io::{load_mesh, save_mesh, save_stl, save_obj, save_3mf, save_ply, save_ply_ascii, MeshFormat};
+pub use io::{
+    load_mesh, save_mesh, save_stl, save_obj, save_3mf, save_ply, save_ply_ascii, MeshFormat,
+    // 3MF with materials support
+    save_3mf_with_materials, load_3mf_with_materials, ThreeMfExportParams, ThreeMfLoadResult,
+};
 pub use repair::{
     compute_vertex_normals, fix_inverted_faces, remove_duplicate_faces, fix_non_manifold_edges,
     repair_mesh, repair_mesh_with_config, RepairParams,
@@ -307,8 +323,77 @@ pub use intersect::{
 };
 pub use decimate::{decimate_mesh, DecimateParams, DecimateResult};
 pub use subdivide::{subdivide_mesh, SubdivideParams, SubdivideResult};
-pub use remesh::{remesh_isotropic, RemeshParams, RemeshResult};
+pub use remesh::{
+    compute_curvature, detect_feature_edges, remesh_adaptive, remesh_anisotropic, remesh_isotropic,
+    CurvatureResult, FeatureEdge, FeatureEdgeResult, RemeshParams, RemeshResult, VertexCurvature,
+};
 pub use thickness::{analyze_thickness, ThicknessParams, ThicknessResult, ThinRegion};
+
+// Re-export morphing and registration types
+pub use morph::{morph_mesh, Constraint, MorphAlgorithm, MorphParams, MorphResult, RbfKernel};
+pub use registration::{
+    align_meshes, non_rigid_align, Landmark, NonRigidParams, NonRigidRegistrationResult,
+    RegistrationAlgorithm, RegistrationParams, RegistrationResult, RigidTransform,
+};
+pub use template::{
+    ControlRegion, FitParams, FitResult, FitStage, FitTemplate, Measurement, MeasurementType,
+    RegionDefinition,
+};
+
+// Re-export region types for variable thickness and material zones
+pub use region::{MaterialProperties, MaterialZone, MeshRegion, RegionMap, RegionSelector, ThicknessMap};
+
+// Re-export assembly types for multi-part management
+pub use assembly::{
+    Assembly, AssemblyExportFormat, AssemblyValidation, BillOfMaterials, BomItem, ClearanceResult,
+    Connection, ConnectionParams, ConnectionType, InterferenceResult, Part,
+};
+
+// Re-export lattice types for infill generation
+pub use lattice::{
+    generate_infill, generate_lattice, DensityMap, InfillParams, InfillResult,
+    LatticeParams, LatticeResult, LatticeType,
+};
+
+// Re-export boolean types for CSG operations
+pub use boolean::{
+    boolean_operation, BooleanOp, BooleanParams, BooleanResult, BooleanStats, CoplanarStrategy,
+};
+
+// Re-export scan processing types
+pub use scan::{
+    cleanup_scan, denoise_mesh, fill_holes_advanced, remove_outliers, DenoiseMethod,
+    DenoiseParams, DenoiseResult, HoleFillParams, HoleFillResult, HoleFillStrategy,
+    OutlierRemovalParams, ScanCleanupParams, ScanCleanupResult,
+};
+
+// Re-export multi-scan alignment and merging types
+pub use multiscan::{
+    align_multiple_scans, align_multiple_scans_with_params, merge_scans, MergeParams,
+    MergeResult, MultiAlignmentParams, MultiAlignmentResult, OverlapHandling, OverlapRegion,
+};
+
+// Re-export printability/manufacturing types
+pub use printability::{
+    auto_orient_for_printing, detect_support_regions, validate_for_printing, IssueSeverity,
+    OrientParams, OrientResult, OverhangRegion, PrintIssue, PrintIssueType, PrintTechnology,
+    PrintValidation, PrinterConfig, SupportAnalysis, SupportRegion, ThinWallRegion,
+};
+
+// Re-export measurement types
+pub use measure::{
+    circumference_at_height, closest_point_on_mesh, cross_section, cross_sections, dimensions,
+    measure_distance, oriented_bounding_box, CrossSection, Dimensions,
+    DistanceMeasurement, OrientedBoundingBox,
+};
+
+// Re-export slicing types for 3D print preview
+pub use slice::{
+    calculate_layer_stats, export_3mf_slices, export_layer_svg, export_slices_svg, slice_mesh,
+    slice_preview, validate_for_fdm, validate_for_sla, Contour, FdmParams, FdmValidationResult,
+    GapIssue, Layer, LayerBounds, LayerStats, SlaParams, SlaValidationResult, SliceParams,
+    SliceResult, SmallFeatureIssue, SvgExportParams, ThinWallIssue,
+};
 
 // Convenience methods on Mesh
 impl Mesh {
@@ -578,5 +663,282 @@ impl Mesh {
     /// ```
     pub fn remesh_with_edge_length(&self, target_edge_length: f64) -> remesh::RemeshResult {
         remesh::remesh_isotropic(self, &remesh::RemeshParams::with_target_edge_length(target_edge_length))
+    }
+
+    /// Remesh with curvature-adaptive edge lengths.
+    ///
+    /// Creates smaller triangles in high-curvature regions and larger triangles
+    /// in flat regions.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex};
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 8.66, 0.0));
+    /// mesh.faces.push([0, 1, 2]);
+    ///
+    /// let result = mesh.remesh_adaptive(2.0);
+    /// println!("Adaptive remeshing: {} triangles", result.final_triangles);
+    /// ```
+    pub fn remesh_adaptive(&self, target_edge_length: f64) -> remesh::RemeshResult {
+        remesh::remesh_adaptive(self, &remesh::RemeshParams::adaptive(target_edge_length))
+    }
+
+    /// Remesh with anisotropic triangles aligned to surface curvature.
+    ///
+    /// Creates elongated triangles that follow principal curvature directions,
+    /// useful for cylindrical or ridge-like surfaces.
+    ///
+    /// # Arguments
+    /// * `target_edge_length` - Base target edge length
+    /// * `anisotropy_ratio` - Ratio of max to min edge length (e.g., 2.0 for 2:1)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex};
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 8.66, 0.0));
+    /// mesh.faces.push([0, 1, 2]);
+    ///
+    /// let result = mesh.remesh_anisotropic(2.0, 3.0);
+    /// println!("Anisotropic remeshing: {} triangles", result.final_triangles);
+    /// ```
+    pub fn remesh_anisotropic(&self, target_edge_length: f64, anisotropy_ratio: f64) -> remesh::RemeshResult {
+        remesh::remesh_anisotropic(self, &remesh::RemeshParams::anisotropic_with_ratio(target_edge_length, anisotropy_ratio))
+    }
+
+    /// Detect feature edges (sharp edges and boundaries) in the mesh.
+    ///
+    /// # Arguments
+    /// * `angle_threshold` - Dihedral angle threshold in radians (e.g., PI/3 for 60 degrees)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex};
+    /// use std::f64::consts::PI;
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+    /// mesh.faces.push([0, 1, 2]);
+    ///
+    /// let result = mesh.detect_feature_edges(PI / 3.0);
+    /// println!("Found {} boundary edges", result.boundary_edges.len());
+    /// ```
+    pub fn detect_feature_edges(&self, angle_threshold: f64) -> remesh::FeatureEdgeResult {
+        remesh::detect_feature_edges(self, angle_threshold)
+    }
+
+    /// Compute per-vertex curvature information.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex};
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+    /// mesh.faces.push([0, 1, 2]);
+    ///
+    /// let curvature = mesh.compute_curvature();
+    /// println!("Mean curvature range: {} to {}", curvature.min_mean_curvature, curvature.max_mean_curvature);
+    /// ```
+    pub fn compute_curvature(&self) -> remesh::CurvatureResult {
+        remesh::compute_curvature(self)
+    }
+
+    /// Morph the mesh using RBF with the given constraints.
+    ///
+    /// This is a convenience method for simple morphing operations.
+    /// For more control, use `morph_with_params`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex, Constraint};
+    /// use nalgebra::{Point3, Vector3};
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 8.66, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 2.89, 8.16));
+    /// mesh.faces.push([0, 2, 1]);
+    /// mesh.faces.push([0, 1, 3]);
+    /// mesh.faces.push([1, 2, 3]);
+    /// mesh.faces.push([2, 0, 3]);
+    ///
+    /// let constraints = vec![
+    ///     Constraint::displacement(Point3::new(5.0, 2.89, 8.16), Vector3::new(0.0, 0.0, 2.0)),
+    /// ];
+    /// let result = mesh.morph(&constraints).unwrap();
+    /// ```
+    pub fn morph(&self, constraints: &[morph::Constraint]) -> MeshResult<morph::MorphResult> {
+        let params = morph::MorphParams::rbf().with_constraints(constraints.to_vec());
+        morph::morph_mesh(self, &params)
+    }
+
+    /// Morph the mesh with custom parameters.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex, MorphParams, Constraint};
+    /// use nalgebra::Point3;
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 8.66, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 2.89, 8.16));
+    /// mesh.faces.push([0, 2, 1]);
+    /// mesh.faces.push([0, 1, 3]);
+    /// mesh.faces.push([1, 2, 3]);
+    /// mesh.faces.push([2, 0, 3]);
+    ///
+    /// let constraints = vec![
+    ///     Constraint::point(Point3::new(5.0, 2.89, 8.16), Point3::new(5.0, 2.89, 10.0)),
+    /// ];
+    /// let params = MorphParams::ffd().with_constraints(constraints);
+    /// let result = mesh.morph_with_params(&params).unwrap();
+    /// ```
+    pub fn morph_with_params(&self, params: &morph::MorphParams) -> MeshResult<morph::MorphResult> {
+        morph::morph_mesh(self, params)
+    }
+
+    /// Align this mesh to a target mesh using ICP.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex};
+    ///
+    /// let mut source = Mesh::new();
+    /// source.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// source.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+    /// source.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+    /// source.faces.push([0, 1, 2]);
+    ///
+    /// let target = source.clone();
+    /// let result = source.align_to(&target).unwrap();
+    /// assert!(result.converged);
+    /// ```
+    pub fn align_to(&self, target: &Mesh) -> MeshResult<registration::RegistrationResult> {
+        registration::align_meshes(self, target, &registration::RegistrationParams::icp())
+    }
+
+    /// Align this mesh to a target mesh with custom parameters.
+    pub fn align_to_with_params(
+        &self,
+        target: &Mesh,
+        params: &registration::RegistrationParams,
+    ) -> MeshResult<registration::RegistrationResult> {
+        registration::align_meshes(self, target, params)
+    }
+
+    /// Register this mesh to a target using landmarks.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex, Landmark};
+    /// use nalgebra::Point3;
+    ///
+    /// let mut source = Mesh::new();
+    /// source.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// source.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+    /// source.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+    /// source.faces.push([0, 1, 2]);
+    ///
+    /// let target = source.clone();
+    /// let landmarks = vec![
+    ///     Landmark::new(Point3::new(0.0, 0.0, 0.0), Point3::new(0.0, 0.0, 0.0)),
+    ///     Landmark::new(Point3::new(1.0, 0.0, 0.0), Point3::new(1.0, 0.0, 0.0)),
+    ///     Landmark::new(Point3::new(0.5, 1.0, 0.0), Point3::new(0.5, 1.0, 0.0)),
+    /// ];
+    /// let result = source.register_to(&target, &landmarks).unwrap();
+    /// ```
+    pub fn register_to(
+        &self,
+        target: &Mesh,
+        landmarks: &[registration::Landmark],
+    ) -> MeshResult<registration::RegistrationResult> {
+        let params = registration::RegistrationParams::landmark_based(landmarks.to_vec());
+        registration::align_meshes(self, target, &params)
+    }
+
+    /// Define a region on this mesh using a selector.
+    ///
+    /// Returns a `MeshRegion` containing the selected vertices and faces.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex, RegionSelector};
+    /// use nalgebra::Point3;
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 10.0, 0.0));
+    /// mesh.faces.push([0, 1, 2]);
+    ///
+    /// // Define a region for the lower half of the mesh
+    /// let lower_region = mesh.define_region("lower", RegionSelector::bounds(
+    ///     Point3::new(-1.0, -1.0, -1.0),
+    ///     Point3::new(11.0, 5.0, 1.0),
+    /// ));
+    /// ```
+    pub fn define_region(&self, name: impl Into<String>, selector: region::RegionSelector) -> region::MeshRegion {
+        region::MeshRegion::from_selector(self, name, selector)
+    }
+
+    /// Create a `RegionMap` for this mesh.
+    ///
+    /// This is a convenience method to start defining multiple regions.
+    pub fn create_region_map(&self) -> region::RegionMap {
+        region::RegionMap::new()
+    }
+
+    /// Create a `ThicknessMap` for this mesh.
+    ///
+    /// The thickness map starts with a uniform default thickness.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_repair::{Mesh, Vertex, RegionSelector};
+    /// use nalgebra::Point3;
+    ///
+    /// let mut mesh = Mesh::new();
+    /// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+    /// mesh.vertices.push(Vertex::from_coords(5.0, 10.0, 0.0));
+    /// mesh.faces.push([0, 1, 2]);
+    ///
+    /// // Create a thickness map with 2mm default
+    /// let mut thickness = mesh.create_thickness_map(2.0);
+    ///
+    /// // Set different thickness for a region
+    /// let top_region = mesh.define_region("top", RegionSelector::bounds(
+    ///     Point3::new(-1.0, 5.0, -1.0),
+    ///     Point3::new(11.0, 11.0, 1.0),
+    /// ));
+    /// thickness.set_region_thickness(&top_region, 3.5);
+    /// ```
+    pub fn create_thickness_map(&self, default_thickness: f64) -> region::ThicknessMap {
+        region::ThicknessMap::new(default_thickness)
     }
 }

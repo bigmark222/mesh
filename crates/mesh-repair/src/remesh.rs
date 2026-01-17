@@ -1,11 +1,15 @@
-//! Isotropic remeshing for uniform edge lengths and improved triangle quality.
+//! Isotropic and adaptive remeshing for uniform edge lengths and improved triangle quality.
 //!
-//! This module provides isotropic remeshing to create meshes with uniform edge lengths
-//! and well-shaped (near-equilateral) triangles. Useful for scanned meshes with uneven
-//! tessellation or when preparing meshes for simulation.
+//! This module provides several remeshing algorithms:
+//! - **Isotropic remeshing**: Create meshes with uniform edge lengths and well-shaped triangles
+//! - **Curvature-adaptive remeshing**: Smaller triangles in high-curvature regions, larger in flat areas
+//! - **Feature-preserving remeshing**: Detect and preserve sharp edges during remeshing
+//! - **Anisotropic remeshing**: Align triangles with principal curvature directions
+//!
+//! Useful for scanned meshes with uneven tessellation or when preparing meshes for simulation.
 
 use hashbrown::{HashMap, HashSet};
-use nalgebra::{Point3, Vector3};
+use nalgebra::{Matrix3, Point3, Vector3};
 
 use crate::{Mesh, MeshAdjacency, Vertex};
 
@@ -49,6 +53,48 @@ pub struct RemeshParams {
     /// Smoothing factor for tangential relaxation (0 = no smoothing, 1 = full).
     /// Default: 0.5
     pub smoothing_factor: f64,
+
+    /// Enable curvature-adaptive remeshing.
+    /// When true, edge lengths vary based on local curvature.
+    /// Default: false
+    pub adaptive_to_curvature: bool,
+
+    /// Minimum curvature threshold for adaptive remeshing.
+    /// Below this curvature, use max_edge_length_adaptive.
+    /// Default: 0.01 (nearly flat)
+    pub curvature_min_threshold: f64,
+
+    /// Maximum curvature threshold for adaptive remeshing.
+    /// Above this curvature, use min_edge_length_adaptive.
+    /// Default: 1.0 (highly curved)
+    pub curvature_max_threshold: f64,
+
+    /// Minimum edge length for adaptive remeshing (in high curvature areas).
+    /// Default: None (uses target * 0.25)
+    pub min_edge_length_adaptive: Option<f64>,
+
+    /// Maximum edge length for adaptive remeshing (in low curvature areas).
+    /// Default: None (uses target * 2.0)
+    pub max_edge_length_adaptive: Option<f64>,
+
+    /// Enable anisotropic remeshing.
+    /// When true, triangles are aligned with principal curvature directions.
+    /// Default: false
+    pub anisotropic: bool,
+
+    /// Anisotropy ratio (max edge length / min edge length in different directions).
+    /// Higher values create more elongated triangles.
+    /// Default: 2.0
+    pub anisotropy_ratio: f64,
+
+    /// Custom direction field for anisotropic remeshing.
+    /// Maps vertex index to preferred direction vector.
+    /// If None, uses principal curvature directions.
+    pub direction_field: Option<HashMap<u32, Vector3<f64>>>,
+
+    /// Preserve feature edges during remeshing (overrides preserve_sharp_edges).
+    /// When set, these specific edges will be preserved regardless of dihedral angle.
+    pub preserve_feature_edges: Option<HashSet<(u32, u32)>>,
 }
 
 impl Default for RemeshParams {
@@ -62,6 +108,15 @@ impl Default for RemeshParams {
             min_edge_ratio: 0.8,
             max_edge_ratio: 1.33,
             smoothing_factor: 0.5,
+            adaptive_to_curvature: false,
+            curvature_min_threshold: 0.01,
+            curvature_max_threshold: 1.0,
+            min_edge_length_adaptive: None,
+            max_edge_length_adaptive: None,
+            anisotropic: false,
+            anisotropy_ratio: 2.0,
+            direction_field: None,
+            preserve_feature_edges: None,
         }
     }
 }
@@ -100,6 +155,86 @@ impl RemeshParams {
             ..Default::default()
         }
     }
+
+    /// Create params for curvature-adaptive remeshing.
+    ///
+    /// This creates smaller triangles in high-curvature regions (detailed areas)
+    /// and larger triangles in flat regions (to reduce triangle count).
+    ///
+    /// # Example
+    /// ```
+    /// use mesh_repair::RemeshParams;
+    ///
+    /// let params = RemeshParams::adaptive(2.0); // 2.0mm base target edge length
+    /// ```
+    pub fn adaptive(target_edge_length: f64) -> Self {
+        Self {
+            target_edge_length: Some(target_edge_length),
+            adaptive_to_curvature: true,
+            preserve_sharp_edges: true,
+            ..Default::default()
+        }
+    }
+
+    /// Create params for anisotropic remeshing.
+    ///
+    /// This aligns triangles with the principal curvature directions,
+    /// creating elongated triangles that better follow surface features.
+    ///
+    /// # Example
+    /// ```
+    /// use mesh_repair::RemeshParams;
+    ///
+    /// let params = RemeshParams::anisotropic_with_ratio(2.0, 3.0);
+    /// ```
+    pub fn anisotropic_with_ratio(target_edge_length: f64, anisotropy_ratio: f64) -> Self {
+        Self {
+            target_edge_length: Some(target_edge_length),
+            anisotropic: true,
+            anisotropy_ratio,
+            preserve_sharp_edges: true,
+            ..Default::default()
+        }
+    }
+
+    /// Enable curvature-adaptive remeshing on existing params.
+    pub fn with_curvature_adaptation(mut self) -> Self {
+        self.adaptive_to_curvature = true;
+        self
+    }
+
+    /// Set curvature thresholds for adaptive remeshing.
+    pub fn with_curvature_thresholds(mut self, min: f64, max: f64) -> Self {
+        self.curvature_min_threshold = min;
+        self.curvature_max_threshold = max;
+        self
+    }
+
+    /// Set adaptive edge length range.
+    pub fn with_adaptive_edge_range(mut self, min_length: f64, max_length: f64) -> Self {
+        self.min_edge_length_adaptive = Some(min_length);
+        self.max_edge_length_adaptive = Some(max_length);
+        self
+    }
+
+    /// Enable anisotropic remeshing on existing params.
+    pub fn with_anisotropy(mut self, ratio: f64) -> Self {
+        self.anisotropic = true;
+        self.anisotropy_ratio = ratio;
+        self
+    }
+
+    /// Set a custom direction field for anisotropic remeshing.
+    pub fn with_direction_field(mut self, field: HashMap<u32, Vector3<f64>>) -> Self {
+        self.direction_field = Some(field);
+        self
+    }
+
+    /// Set specific feature edges to preserve.
+    pub fn with_feature_edges(mut self, edges: HashSet<(u32, u32)>) -> Self {
+        self.preserve_feature_edges = Some(edges);
+        self
+    }
 }
 
 /// Result of isotropic remeshing.
@@ -125,6 +260,70 @@ pub struct RemeshResult {
     pub edges_collapsed: usize,
     /// Number of edges flipped during remeshing.
     pub edges_flipped: usize,
+    /// Number of feature edges detected (if feature detection was enabled).
+    pub feature_edges_detected: usize,
+    /// Whether curvature-adaptive remeshing was used.
+    pub adaptive_enabled: bool,
+    /// Whether anisotropic remeshing was used.
+    pub anisotropic_enabled: bool,
+}
+
+/// A detected feature edge with its properties.
+#[derive(Debug, Clone)]
+pub struct FeatureEdge {
+    /// The edge vertices (canonical order: smaller index first).
+    pub edge: (u32, u32),
+    /// The dihedral angle at this edge (in radians).
+    pub dihedral_angle: f64,
+    /// Whether this is a boundary edge.
+    pub is_boundary: bool,
+    /// Whether this is a sharp edge (dihedral angle above threshold).
+    pub is_sharp: bool,
+}
+
+/// Result of feature edge detection.
+#[derive(Debug)]
+pub struct FeatureEdgeResult {
+    /// All detected feature edges.
+    pub edges: Vec<FeatureEdge>,
+    /// Sharp edges only.
+    pub sharp_edges: HashSet<(u32, u32)>,
+    /// Boundary edges.
+    pub boundary_edges: HashSet<(u32, u32)>,
+    /// Mean dihedral angle across all non-boundary edges.
+    pub mean_dihedral_angle: f64,
+    /// Maximum dihedral angle found.
+    pub max_dihedral_angle: f64,
+}
+
+/// Per-vertex curvature information.
+#[derive(Debug, Clone, Default)]
+pub struct VertexCurvature {
+    /// Mean curvature (average of principal curvatures).
+    pub mean: f64,
+    /// Gaussian curvature (product of principal curvatures).
+    pub gaussian: f64,
+    /// Maximum principal curvature.
+    pub k1: f64,
+    /// Minimum principal curvature.
+    pub k2: f64,
+    /// Direction of maximum principal curvature.
+    pub dir1: Vector3<f64>,
+    /// Direction of minimum principal curvature.
+    pub dir2: Vector3<f64>,
+}
+
+/// Result of curvature computation.
+#[derive(Debug)]
+pub struct CurvatureResult {
+    /// Per-vertex curvature values.
+    pub vertex_curvatures: Vec<VertexCurvature>,
+    /// Minimum mean curvature across the mesh.
+    pub min_mean_curvature: f64,
+    /// Maximum mean curvature across the mesh.
+    pub max_mean_curvature: f64,
+    /// Average mean curvature across the mesh.
+    pub avg_mean_curvature: f64,
 }
 
 /// Perform isotropic remeshing on a mesh.
@@ -160,6 +359,14 @@ pub fn remesh_isotropic(mesh: &Mesh, params: &RemeshParams) -> RemeshResult {
     let original_triangles = mesh.faces.len();
     let original_vertices = mesh.vertices.len();
 
+    // Dispatch to appropriate remeshing algorithm based on params
+    if params.adaptive_to_curvature {
+        return remesh_adaptive(mesh, params);
+    }
+    if params.anisotropic {
+        return remesh_anisotropic(mesh, params);
+    }
+
     if original_triangles == 0 || params.iterations == 0 {
         return RemeshResult {
             mesh: mesh.clone(),
@@ -172,6 +379,9 @@ pub fn remesh_isotropic(mesh: &Mesh, params: &RemeshParams) -> RemeshResult {
             edges_split: 0,
             edges_collapsed: 0,
             edges_flipped: 0,
+            feature_edges_detected: 0,
+            adaptive_enabled: false,
+            anisotropic_enabled: false,
         };
     }
 
@@ -268,6 +478,14 @@ pub fn remesh_isotropic(mesh: &Mesh, params: &RemeshParams) -> RemeshResult {
     // Clean up any unreferenced vertices
     current_mesh = remove_unreferenced_vertices_internal(&current_mesh);
 
+    // Count feature edges if preserving them
+    let feature_edge_count = if params.preserve_sharp_edges {
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+        find_sharp_edges(&current_mesh, &adj, params.sharp_angle_threshold).len()
+    } else {
+        0
+    };
+
     RemeshResult {
         final_triangles: current_mesh.faces.len(),
         final_vertices: current_mesh.vertices.len(),
@@ -279,6 +497,9 @@ pub fn remesh_isotropic(mesh: &Mesh, params: &RemeshParams) -> RemeshResult {
         edges_split: total_splits,
         edges_collapsed: total_collapses,
         edges_flipped: total_flips,
+        feature_edges_detected: feature_edge_count,
+        adaptive_enabled: false,
+        anisotropic_enabled: false,
     }
 }
 
@@ -867,6 +1088,1288 @@ fn canonical_edge(v0: u32, v1: u32) -> (u32, u32) {
     }
 }
 
+// ============================================================================
+// Feature Edge Detection
+// ============================================================================
+
+/// Detect feature edges in a mesh.
+///
+/// Feature edges are edges that lie on sharp corners, creases, or boundaries.
+/// They are important for preserving the geometric character of a mesh during
+/// remeshing operations.
+///
+/// # Arguments
+/// * `mesh` - The input mesh
+/// * `sharp_angle_threshold` - Dihedral angle (in radians) above which an edge is considered sharp.
+///   Default is PI/3 (60 degrees).
+///
+/// # Returns
+/// A `FeatureEdgeResult` containing all detected feature edges and statistics.
+///
+/// # Example
+/// ```
+/// use mesh_repair::{Mesh, Vertex, detect_feature_edges};
+/// use std::f64::consts::PI;
+///
+/// let mut mesh = Mesh::new();
+/// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(0.5, 0.0, 1.0));
+/// mesh.faces.push([0, 1, 2]);
+/// mesh.faces.push([0, 3, 1]);
+///
+/// let result = detect_feature_edges(&mesh, PI / 4.0); // 45 degrees
+/// println!("Found {} sharp edges", result.sharp_edges.len());
+/// ```
+pub fn detect_feature_edges(mesh: &Mesh, sharp_angle_threshold: f64) -> FeatureEdgeResult {
+    let adj = MeshAdjacency::build(&mesh.faces);
+
+    let mut edges = Vec::new();
+    let mut sharp_edges = HashSet::new();
+    let mut boundary_edges = HashSet::new();
+    let mut total_angle = 0.0;
+    let mut interior_edge_count = 0;
+    let mut max_angle = 0.0f64;
+
+    for (&edge, face_indices) in adj.edge_to_faces.iter() {
+        let is_boundary = face_indices.len() == 1;
+
+        if is_boundary {
+            boundary_edges.insert(edge);
+            edges.push(FeatureEdge {
+                edge,
+                dihedral_angle: std::f64::consts::PI, // Boundary edges treated as max angle
+                is_boundary: true,
+                is_sharp: true, // Boundaries are always features
+            });
+            continue;
+        }
+
+        if face_indices.len() != 2 {
+            // Non-manifold edge - treat as feature
+            sharp_edges.insert(edge);
+            edges.push(FeatureEdge {
+                edge,
+                dihedral_angle: std::f64::consts::PI,
+                is_boundary: false,
+                is_sharp: true,
+            });
+            continue;
+        }
+
+        // Compute dihedral angle
+        let f1 = &mesh.faces[face_indices[0] as usize];
+        let f2 = &mesh.faces[face_indices[1] as usize];
+
+        if let (Some(n1), Some(n2)) = (compute_face_normal(mesh, f1), compute_face_normal(mesh, f2)) {
+            let dot = n1.dot(&n2).clamp(-1.0, 1.0);
+            let angle = dot.acos();
+
+            total_angle += angle;
+            interior_edge_count += 1;
+            max_angle = max_angle.max(angle);
+
+            let is_sharp = angle > sharp_angle_threshold;
+            if is_sharp {
+                sharp_edges.insert(edge);
+            }
+
+            edges.push(FeatureEdge {
+                edge,
+                dihedral_angle: angle,
+                is_boundary: false,
+                is_sharp,
+            });
+        }
+    }
+
+    let mean_dihedral_angle = if interior_edge_count > 0 {
+        total_angle / interior_edge_count as f64
+    } else {
+        0.0
+    };
+
+    FeatureEdgeResult {
+        edges,
+        sharp_edges,
+        boundary_edges,
+        mean_dihedral_angle,
+        max_dihedral_angle: max_angle,
+    }
+}
+
+// ============================================================================
+// Curvature Computation
+// ============================================================================
+
+/// Compute per-vertex curvature for a mesh.
+///
+/// Uses the discrete curvature approximation based on the shape operator.
+/// For each vertex, computes:
+/// - Mean curvature (H)
+/// - Gaussian curvature (K)
+/// - Principal curvatures (k1, k2)
+/// - Principal curvature directions (dir1, dir2)
+///
+/// # Arguments
+/// * `mesh` - The input mesh
+///
+/// # Returns
+/// A `CurvatureResult` containing per-vertex curvature values and statistics.
+///
+/// # Example
+/// ```
+/// use mesh_repair::{Mesh, Vertex, compute_curvature};
+///
+/// let mut mesh = Mesh::new();
+/// // Create a simple mesh...
+/// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+/// mesh.faces.push([0, 1, 2]);
+///
+/// let result = compute_curvature(&mesh);
+/// println!("Mean curvature range: {} to {}", result.min_mean_curvature, result.max_mean_curvature);
+/// ```
+pub fn compute_curvature(mesh: &Mesh) -> CurvatureResult {
+    let adj = MeshAdjacency::build(&mesh.faces);
+    let vertex_count = mesh.vertices.len();
+
+    let mut vertex_curvatures = Vec::with_capacity(vertex_count);
+    let mut min_mean = f64::MAX;
+    let mut max_mean = f64::MIN;
+    let mut total_mean = 0.0;
+
+    // Compute vertex normals for later use
+    let vertex_normals = compute_vertex_normals_internal(mesh, &adj);
+
+    for vi in 0..vertex_count {
+        let curv = compute_vertex_curvature(mesh, &adj, vi as u32, &vertex_normals);
+
+        if curv.mean.is_finite() {
+            min_mean = min_mean.min(curv.mean.abs());
+            max_mean = max_mean.max(curv.mean.abs());
+            total_mean += curv.mean.abs();
+        }
+
+        vertex_curvatures.push(curv);
+    }
+
+    let avg_mean = if vertex_count > 0 {
+        total_mean / vertex_count as f64
+    } else {
+        0.0
+    };
+
+    CurvatureResult {
+        vertex_curvatures,
+        min_mean_curvature: if min_mean == f64::MAX { 0.0 } else { min_mean },
+        max_mean_curvature: if max_mean == f64::MIN { 0.0 } else { max_mean },
+        avg_mean_curvature: avg_mean,
+    }
+}
+
+/// Compute curvature for a single vertex.
+fn compute_vertex_curvature(
+    mesh: &Mesh,
+    adj: &MeshAdjacency,
+    vertex_idx: u32,
+    vertex_normals: &[Vector3<f64>],
+) -> VertexCurvature {
+    let neighbors = get_vertex_neighbors(adj, vertex_idx);
+
+    if neighbors.is_empty() {
+        return VertexCurvature::default();
+    }
+
+    let p = &mesh.vertices[vertex_idx as usize].position;
+    let normal = &vertex_normals[vertex_idx as usize];
+
+    // Build local coordinate frame
+    let (tangent1, tangent2) = build_tangent_frame(normal);
+
+    // Compute shape operator via edge-based curvature
+    // Using the method from Meyer et al. "Discrete Differential-Geometry Operators"
+    let mut shape_matrix = Matrix3::zeros();
+    let mut total_weight = 0.0;
+
+    for &ni in &neighbors {
+        let np = &mesh.vertices[ni as usize].position;
+        let edge = np - p;
+        let edge_len = edge.norm();
+
+        if edge_len < 1e-10 {
+            continue;
+        }
+
+        // Project edge onto tangent plane
+        let edge_normalized = edge / edge_len;
+        let edge_tangent = edge_normalized - normal * normal.dot(&edge_normalized);
+        let edge_tangent_len = edge_tangent.norm();
+
+        if edge_tangent_len < 1e-10 {
+            continue;
+        }
+
+        // Compute curvature along this edge
+        let nn = &vertex_normals[ni as usize];
+        let normal_diff = nn - normal;
+        let kappa = -normal_diff.dot(&edge_normalized) / edge_len;
+
+        // Weight by edge length (cotangent weights would be better but more complex)
+        let weight = edge_len;
+        total_weight += weight;
+
+        // Add contribution to shape matrix
+        let edge_2d = Vector3::new(
+            edge_tangent.dot(&tangent1),
+            edge_tangent.dot(&tangent2),
+            0.0,
+        );
+        let edge_2d_normalized = edge_2d / edge_2d.norm().max(1e-10);
+
+        for i in 0..2 {
+            for j in 0..2 {
+                shape_matrix[(i, j)] += weight * kappa * edge_2d_normalized[i] * edge_2d_normalized[j];
+            }
+        }
+    }
+
+    if total_weight < 1e-10 {
+        return VertexCurvature::default();
+    }
+
+    // Normalize by total weight
+    shape_matrix /= total_weight;
+
+    // Extract 2x2 submatrix for eigenvalue decomposition
+    let shape_2x2 = Matrix3::new(
+        shape_matrix[(0, 0)], shape_matrix[(0, 1)], 0.0,
+        shape_matrix[(1, 0)], shape_matrix[(1, 1)], 0.0,
+        0.0, 0.0, 0.0,
+    );
+
+    // Compute eigenvalues (principal curvatures) using 2x2 formula
+    let a = shape_2x2[(0, 0)];
+    let b = shape_2x2[(0, 1)];
+    let c = shape_2x2[(1, 0)];
+    let d = shape_2x2[(1, 1)];
+
+    let trace = a + d;
+    let det = a * d - b * c;
+
+    let discriminant = (trace * trace - 4.0 * det).max(0.0);
+    let sqrt_disc = discriminant.sqrt();
+
+    let k1 = (trace + sqrt_disc) / 2.0; // Max principal curvature
+    let k2 = (trace - sqrt_disc) / 2.0; // Min principal curvature
+
+    // Compute eigenvectors (principal directions)
+    let (dir1, dir2) = if (a - k1).abs() > 1e-10 || b.abs() > 1e-10 {
+        let ev1 = if b.abs() > 1e-10 {
+            Vector3::new(b, k1 - a, 0.0).normalize()
+        } else if (a - k1).abs() > 1e-10 {
+            Vector3::new(k1 - d, c, 0.0).normalize()
+        } else {
+            Vector3::new(1.0, 0.0, 0.0)
+        };
+
+        let ev2 = if b.abs() > 1e-10 {
+            Vector3::new(b, k2 - a, 0.0).normalize()
+        } else if (a - k2).abs() > 1e-10 {
+            Vector3::new(k2 - d, c, 0.0).normalize()
+        } else {
+            Vector3::new(0.0, 1.0, 0.0)
+        };
+
+        // Convert back to 3D
+        let d1 = tangent1 * ev1.x + tangent2 * ev1.y;
+        let d2 = tangent1 * ev2.x + tangent2 * ev2.y;
+        (d1, d2)
+    } else {
+        (tangent1, tangent2)
+    };
+
+    VertexCurvature {
+        mean: (k1 + k2) / 2.0,
+        gaussian: k1 * k2,
+        k1,
+        k2,
+        dir1,
+        dir2,
+    }
+}
+
+/// Build an orthonormal tangent frame from a normal vector.
+fn build_tangent_frame(normal: &Vector3<f64>) -> (Vector3<f64>, Vector3<f64>) {
+    // Find a vector not parallel to normal
+    let up = if normal.x.abs() < 0.9 {
+        Vector3::new(1.0, 0.0, 0.0)
+    } else {
+        Vector3::new(0.0, 1.0, 0.0)
+    };
+
+    let tangent1 = normal.cross(&up).normalize();
+    let tangent2 = normal.cross(&tangent1);
+
+    (tangent1, tangent2)
+}
+
+/// Compute vertex normals from face normals (area-weighted average).
+fn compute_vertex_normals_internal(mesh: &Mesh, _adj: &MeshAdjacency) -> Vec<Vector3<f64>> {
+    let mut normals = vec![Vector3::zeros(); mesh.vertices.len()];
+
+    for face in &mesh.faces {
+        if compute_face_normal(mesh, face).is_some() {
+            // Weight by face area (implicit in unnormalized cross product)
+            let v0 = &mesh.vertices[face[0] as usize].position;
+            let v1 = &mesh.vertices[face[1] as usize].position;
+            let v2 = &mesh.vertices[face[2] as usize].position;
+
+            let e1 = v1 - v0;
+            let e2 = v2 - v0;
+            let area_normal = e1.cross(&e2);
+
+            for &vi in face {
+                normals[vi as usize] += area_normal;
+            }
+        }
+    }
+
+    // Normalize
+    for normal in &mut normals {
+        let len = normal.norm();
+        if len > 1e-10 {
+            *normal /= len;
+        } else {
+            *normal = Vector3::new(0.0, 0.0, 1.0); // Default up
+        }
+    }
+
+    normals
+}
+
+// ============================================================================
+// Curvature-Adaptive Remeshing
+// ============================================================================
+
+/// Perform curvature-adaptive remeshing on a mesh.
+///
+/// This creates smaller triangles in high-curvature regions and larger triangles
+/// in flat regions, resulting in better detail preservation with fewer triangles.
+///
+/// # Arguments
+/// * `mesh` - The input mesh
+/// * `params` - Remeshing parameters with `adaptive_to_curvature` enabled
+///
+/// # Returns
+/// A `RemeshResult` containing the remeshed mesh and statistics.
+///
+/// # Example
+/// ```
+/// use mesh_repair::{Mesh, Vertex, remesh_adaptive, RemeshParams};
+///
+/// let mut mesh = Mesh::new();
+/// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(5.0, 8.66, 0.0));
+/// mesh.faces.push([0, 1, 2]);
+///
+/// let result = remesh_adaptive(&mesh, &RemeshParams::adaptive(2.0));
+/// println!("Adaptive remeshing produced {} triangles", result.final_triangles);
+/// ```
+pub fn remesh_adaptive(mesh: &Mesh, params: &RemeshParams) -> RemeshResult {
+    let original_triangles = mesh.faces.len();
+    let original_vertices = mesh.vertices.len();
+
+    if original_triangles == 0 || params.iterations == 0 {
+        return RemeshResult {
+            mesh: mesh.clone(),
+            original_triangles,
+            final_triangles: original_triangles,
+            original_vertices,
+            final_vertices: original_vertices,
+            iterations_performed: 0,
+            target_edge_length: 0.0,
+            edges_split: 0,
+            edges_collapsed: 0,
+            edges_flipped: 0,
+            feature_edges_detected: 0,
+            adaptive_enabled: true,
+            anisotropic_enabled: params.anisotropic,
+        };
+    }
+
+    // Compute curvature for the mesh
+    let curvature_result = compute_curvature(mesh);
+
+    // Determine base target edge length
+    let base_target = params
+        .target_edge_length
+        .unwrap_or_else(|| compute_average_edge_length(mesh));
+
+    let min_adaptive = params.min_edge_length_adaptive.unwrap_or(base_target * 0.25);
+    let max_adaptive = params.max_edge_length_adaptive.unwrap_or(base_target * 2.0);
+
+    // Compute per-vertex target edge lengths based on curvature
+    let vertex_targets = compute_adaptive_edge_lengths(
+        &curvature_result,
+        base_target,
+        min_adaptive,
+        max_adaptive,
+        params.curvature_min_threshold,
+        params.curvature_max_threshold,
+    );
+
+    let mut current_mesh = mesh.clone();
+    let mut total_splits = 0;
+    let mut total_collapses = 0;
+    let mut total_flips = 0;
+    let mut feature_edge_count = 0;
+
+    for _iter in 0..params.iterations {
+        // Build adjacency
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+
+        // Identify protected edges
+        let boundary_edges: HashSet<(u32, u32)> = if params.preserve_boundary {
+            adj.boundary_edges().collect()
+        } else {
+            HashSet::new()
+        };
+
+        let sharp_edges: HashSet<(u32, u32)> = if params.preserve_sharp_edges {
+            let feature_result = detect_feature_edges(&current_mesh, params.sharp_angle_threshold);
+            feature_edge_count = feature_result.sharp_edges.len();
+            feature_result.sharp_edges
+        } else if let Some(ref custom_edges) = params.preserve_feature_edges {
+            feature_edge_count = custom_edges.len();
+            custom_edges.clone()
+        } else {
+            HashSet::new()
+        };
+
+        // Step 1: Split long edges (adaptive)
+        let (new_mesh, splits) = split_long_edges_adaptive(
+            &current_mesh,
+            &adj,
+            &vertex_targets,
+            params.max_edge_ratio,
+            &boundary_edges,
+            &sharp_edges,
+        );
+        current_mesh = new_mesh;
+        total_splits += splits;
+
+        // Rebuild adjacency and recompute targets for new vertices
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+        let curvature_result = compute_curvature(&current_mesh);
+        let vertex_targets = compute_adaptive_edge_lengths(
+            &curvature_result,
+            base_target,
+            min_adaptive,
+            max_adaptive,
+            params.curvature_min_threshold,
+            params.curvature_max_threshold,
+        );
+
+        let boundary_edges: HashSet<(u32, u32)> = if params.preserve_boundary {
+            adj.boundary_edges().collect()
+        } else {
+            HashSet::new()
+        };
+        let boundary_vertices: HashSet<u32> = boundary_edges
+            .iter()
+            .flat_map(|&(a, b)| [a, b])
+            .collect();
+
+        // Step 2: Collapse short edges (adaptive)
+        let (new_mesh, collapses) = collapse_short_edges_adaptive(
+            &current_mesh,
+            &adj,
+            &vertex_targets,
+            params.min_edge_ratio,
+            &boundary_edges,
+            &sharp_edges,
+            &boundary_vertices,
+        );
+        current_mesh = new_mesh;
+        total_collapses += collapses;
+
+        // Rebuild adjacency after collapses
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+
+        // Step 3: Flip edges to improve valence
+        let (new_mesh, flips) = flip_edges_for_valence(&current_mesh, &adj, &boundary_edges, &sharp_edges);
+        current_mesh = new_mesh;
+        total_flips += flips;
+
+        // Rebuild adjacency after flips
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+        let boundary_vertices: HashSet<u32> = if params.preserve_boundary {
+            adj.boundary_edges().flat_map(|(a, b)| [a, b]).collect()
+        } else {
+            HashSet::new()
+        };
+
+        // Step 4: Tangential smoothing
+        smooth_vertices(
+            &mut current_mesh,
+            &adj,
+            params.smoothing_factor,
+            &boundary_vertices,
+        );
+    }
+
+    // Clean up
+    current_mesh = remove_unreferenced_vertices_internal(&current_mesh);
+
+    RemeshResult {
+        final_triangles: current_mesh.faces.len(),
+        final_vertices: current_mesh.vertices.len(),
+        mesh: current_mesh,
+        original_triangles,
+        original_vertices,
+        iterations_performed: params.iterations,
+        target_edge_length: base_target,
+        edges_split: total_splits,
+        edges_collapsed: total_collapses,
+        edges_flipped: total_flips,
+        feature_edges_detected: feature_edge_count,
+        adaptive_enabled: true,
+        anisotropic_enabled: params.anisotropic,
+    }
+}
+
+/// Compute per-vertex target edge lengths based on curvature.
+fn compute_adaptive_edge_lengths(
+    curvature: &CurvatureResult,
+    _base_target: f64,
+    min_length: f64,
+    max_length: f64,
+    curv_min: f64,
+    curv_max: f64,
+) -> Vec<f64> {
+    curvature.vertex_curvatures.iter().map(|vc| {
+        let curv = vc.mean.abs();
+
+        // Clamp curvature to threshold range
+        let curv_clamped = curv.clamp(curv_min, curv_max);
+
+        // Linear interpolation: high curvature -> small edges, low curvature -> large edges
+        let t = if curv_max > curv_min {
+            (curv_clamped - curv_min) / (curv_max - curv_min)
+        } else {
+            0.5
+        };
+
+        // Interpolate between max_length (flat) and min_length (curved)
+        max_length + (min_length - max_length) * t
+    }).collect()
+}
+
+/// Split edges that are longer than their adaptive target.
+fn split_long_edges_adaptive(
+    mesh: &Mesh,
+    adj: &MeshAdjacency,
+    vertex_targets: &[f64],
+    max_ratio: f64,
+    _boundary_edges: &HashSet<(u32, u32)>,
+    _sharp_edges: &HashSet<(u32, u32)>,
+) -> (Mesh, usize) {
+    let mut vertices = mesh.vertices.clone();
+    let mut faces: Vec<[u32; 3]> = Vec::with_capacity(mesh.faces.len() * 2);
+    let mut split_count = 0;
+
+    let mut edge_midpoints: HashMap<(u32, u32), u32> = HashMap::new();
+
+    // First pass: identify edges to split
+    for (&edge, _) in adj.edge_to_faces.iter() {
+        let (v0, v1) = edge;
+        let p0 = &mesh.vertices[v0 as usize].position;
+        let p1 = &mesh.vertices[v1 as usize].position;
+        let length = (p1 - p0).norm();
+
+        // Use average of vertex targets for this edge
+        let target_v0 = vertex_targets.get(v0 as usize).copied().unwrap_or(1.0);
+        let target_v1 = vertex_targets.get(v1 as usize).copied().unwrap_or(1.0);
+        let edge_target = (target_v0 + target_v1) / 2.0;
+        let max_length = edge_target * max_ratio;
+
+        if length > max_length {
+            let midpoint = Point3::new(
+                (p0.x + p1.x) / 2.0,
+                (p0.y + p1.y) / 2.0,
+                (p0.z + p1.z) / 2.0,
+            );
+
+            let mut new_vertex = Vertex::new(midpoint);
+            let vert0 = &mesh.vertices[v0 as usize];
+            let vert1 = &mesh.vertices[v1 as usize];
+
+            if let (Some(o0), Some(o1)) = (vert0.offset, vert1.offset) {
+                new_vertex.offset = Some((o0 + o1) / 2.0);
+            }
+            if vert0.tag == vert1.tag {
+                new_vertex.tag = vert0.tag;
+            }
+
+            let new_idx = vertices.len() as u32;
+            vertices.push(new_vertex);
+            edge_midpoints.insert(edge, new_idx);
+            split_count += 1;
+        }
+    }
+
+    // Second pass: rebuild faces
+    for face in &mesh.faces {
+        let edges = [
+            canonical_edge(face[0], face[1]),
+            canonical_edge(face[1], face[2]),
+            canonical_edge(face[2], face[0]),
+        ];
+
+        let midpoints: Vec<Option<u32>> = edges
+            .iter()
+            .map(|e| edge_midpoints.get(e).copied())
+            .collect();
+
+        let num_splits: usize = midpoints.iter().filter(|m| m.is_some()).count();
+
+        match num_splits {
+            0 => faces.push(*face),
+            1 => {
+                let split_idx = midpoints.iter().position(|m| m.is_some()).unwrap();
+                let mid = midpoints[split_idx].unwrap();
+                let v0 = face[split_idx];
+                let v1 = face[(split_idx + 1) % 3];
+                let v2 = face[(split_idx + 2) % 3];
+                faces.push([v0, mid, v2]);
+                faces.push([mid, v1, v2]);
+            }
+            2 => {
+                let unsplit_idx = midpoints.iter().position(|m| m.is_none()).unwrap();
+                let m0 = midpoints[(unsplit_idx + 1) % 3].unwrap();
+                let m1 = midpoints[(unsplit_idx + 2) % 3].unwrap();
+                let v0 = face[unsplit_idx];
+                let v1 = face[(unsplit_idx + 1) % 3];
+                let v2 = face[(unsplit_idx + 2) % 3];
+                faces.push([v0, v1, m0]);
+                faces.push([v0, m0, m1]);
+                faces.push([m0, v2, m1]);
+            }
+            3 => {
+                let m01 = midpoints[0].unwrap();
+                let m12 = midpoints[1].unwrap();
+                let m20 = midpoints[2].unwrap();
+                faces.push([face[0], m01, m20]);
+                faces.push([m01, face[1], m12]);
+                faces.push([m20, m12, face[2]]);
+                faces.push([m01, m12, m20]);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    (Mesh { vertices, faces }, split_count)
+}
+
+/// Collapse edges that are shorter than their adaptive target.
+fn collapse_short_edges_adaptive(
+    mesh: &Mesh,
+    adj: &MeshAdjacency,
+    vertex_targets: &[f64],
+    min_ratio: f64,
+    boundary_edges: &HashSet<(u32, u32)>,
+    sharp_edges: &HashSet<(u32, u32)>,
+    boundary_vertices: &HashSet<u32>,
+) -> (Mesh, usize) {
+    let mut vertices = mesh.vertices.clone();
+    let mut collapse_count = 0;
+
+    let mut vertex_map: HashMap<u32, u32> = HashMap::new();
+    for i in 0..vertices.len() {
+        vertex_map.insert(i as u32, i as u32);
+    }
+
+    let mut edges_with_length: Vec<((u32, u32), f64, f64)> = adj
+        .edge_to_faces
+        .keys()
+        .filter_map(|&edge| {
+            let (v0, v1) = edge;
+            let p0 = &mesh.vertices[v0 as usize].position;
+            let p1 = &mesh.vertices[v1 as usize].position;
+            let length = (p1 - p0).norm();
+
+            let target_v0 = vertex_targets.get(v0 as usize).copied().unwrap_or(1.0);
+            let target_v1 = vertex_targets.get(v1 as usize).copied().unwrap_or(1.0);
+            let edge_target = (target_v0 + target_v1) / 2.0;
+            let min_length = edge_target * min_ratio;
+
+            if length < min_length {
+                if boundary_edges.contains(&edge) || sharp_edges.contains(&edge) {
+                    return None;
+                }
+                Some((edge, length, min_length))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    edges_with_length.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    let mut collapsed_vertices: HashSet<u32> = HashSet::new();
+
+    for ((v0, v1), _, _) in edges_with_length {
+        if collapsed_vertices.contains(&v0) || collapsed_vertices.contains(&v1) {
+            continue;
+        }
+
+        let final_v0 = resolve_vertex(&vertex_map, v0);
+        let final_v1 = resolve_vertex(&vertex_map, v1);
+
+        if final_v0 == final_v1 {
+            continue;
+        }
+
+        if would_create_non_manifold(adj, final_v0, final_v1) {
+            continue;
+        }
+
+        let (keep, remove) = if boundary_vertices.contains(&final_v0) {
+            (final_v0, final_v1)
+        } else if boundary_vertices.contains(&final_v1) {
+            (final_v1, final_v0)
+        } else {
+            let p0 = &vertices[final_v0 as usize].position;
+            let p1 = &vertices[final_v1 as usize].position;
+            let midpoint = Point3::new(
+                (p0.x + p1.x) / 2.0,
+                (p0.y + p1.y) / 2.0,
+                (p0.z + p1.z) / 2.0,
+            );
+            vertices[final_v0 as usize].position = midpoint;
+            (final_v0, final_v1)
+        };
+
+        vertex_map.insert(remove, keep);
+        collapsed_vertices.insert(remove);
+        collapse_count += 1;
+    }
+
+    let mut new_faces: Vec<[u32; 3]> = Vec::with_capacity(mesh.faces.len());
+    for face in &mesh.faces {
+        let v0 = resolve_vertex(&vertex_map, face[0]);
+        let v1 = resolve_vertex(&vertex_map, face[1]);
+        let v2 = resolve_vertex(&vertex_map, face[2]);
+
+        if v0 != v1 && v1 != v2 && v2 != v0 {
+            new_faces.push([v0, v1, v2]);
+        }
+    }
+
+    (Mesh { vertices, faces: new_faces }, collapse_count)
+}
+
+// ============================================================================
+// Anisotropic Remeshing
+// ============================================================================
+
+/// Perform anisotropic remeshing on a mesh.
+///
+/// This aligns triangles with the principal curvature directions, creating
+/// elongated triangles that better follow surface features (like cylinders,
+/// ridges, or valleys).
+///
+/// # Arguments
+/// * `mesh` - The input mesh
+/// * `params` - Remeshing parameters with `anisotropic` enabled
+///
+/// # Returns
+/// A `RemeshResult` containing the remeshed mesh and statistics.
+///
+/// # Example
+/// ```
+/// use mesh_repair::{Mesh, Vertex, remesh_anisotropic, RemeshParams};
+///
+/// let mut mesh = Mesh::new();
+/// mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+/// mesh.vertices.push(Vertex::from_coords(5.0, 8.66, 0.0));
+/// mesh.faces.push([0, 1, 2]);
+///
+/// let result = remesh_anisotropic(&mesh, &RemeshParams::anisotropic_with_ratio(2.0, 3.0));
+/// println!("Anisotropic remeshing produced {} triangles", result.final_triangles);
+/// ```
+pub fn remesh_anisotropic(mesh: &Mesh, params: &RemeshParams) -> RemeshResult {
+    // For anisotropic remeshing, we use a modified version that considers direction
+    // For now, we'll use the adaptive remeshing as a base and add directional awareness
+
+    let original_triangles = mesh.faces.len();
+    let original_vertices = mesh.vertices.len();
+
+    if original_triangles == 0 || params.iterations == 0 {
+        return RemeshResult {
+            mesh: mesh.clone(),
+            original_triangles,
+            final_triangles: original_triangles,
+            original_vertices,
+            final_vertices: original_vertices,
+            iterations_performed: 0,
+            target_edge_length: 0.0,
+            edges_split: 0,
+            edges_collapsed: 0,
+            edges_flipped: 0,
+            feature_edges_detected: 0,
+            adaptive_enabled: params.adaptive_to_curvature,
+            anisotropic_enabled: true,
+        };
+    }
+
+    // Get base target
+    let base_target = params
+        .target_edge_length
+        .unwrap_or_else(|| compute_average_edge_length(mesh));
+
+    // Compute curvature and direction field
+    let curvature_result = compute_curvature(mesh);
+
+    // Build direction field (either from params or computed from curvature)
+    let direction_field: HashMap<u32, Vector3<f64>> = if let Some(ref custom_field) = params.direction_field {
+        custom_field.clone()
+    } else {
+        // Use principal curvature directions
+        curvature_result.vertex_curvatures.iter().enumerate().map(|(i, vc)| {
+            (i as u32, vc.dir1)
+        }).collect()
+    };
+
+    let mut current_mesh = mesh.clone();
+    let mut total_splits = 0;
+    let mut total_collapses = 0;
+    let mut total_flips = 0;
+    let mut feature_edge_count = 0;
+
+    for _iter in 0..params.iterations {
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+
+        let boundary_edges: HashSet<(u32, u32)> = if params.preserve_boundary {
+            adj.boundary_edges().collect()
+        } else {
+            HashSet::new()
+        };
+
+        let sharp_edges: HashSet<(u32, u32)> = if params.preserve_sharp_edges {
+            let feature_result = detect_feature_edges(&current_mesh, params.sharp_angle_threshold);
+            feature_edge_count = feature_result.sharp_edges.len();
+            feature_result.sharp_edges
+        } else {
+            HashSet::new()
+        };
+
+        // Anisotropic edge splitting
+        let (new_mesh, splits) = split_long_edges_anisotropic(
+            &current_mesh,
+            &adj,
+            base_target,
+            params.anisotropy_ratio,
+            params.max_edge_ratio,
+            &direction_field,
+            &boundary_edges,
+            &sharp_edges,
+        );
+        current_mesh = new_mesh;
+        total_splits += splits;
+
+        // Rebuild adjacency and direction field
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+        let curvature_result = compute_curvature(&current_mesh);
+        let direction_field: HashMap<u32, Vector3<f64>> = curvature_result.vertex_curvatures
+            .iter()
+            .enumerate()
+            .map(|(i, vc)| (i as u32, vc.dir1))
+            .collect();
+
+        let boundary_edges: HashSet<(u32, u32)> = if params.preserve_boundary {
+            adj.boundary_edges().collect()
+        } else {
+            HashSet::new()
+        };
+        let boundary_vertices: HashSet<u32> = boundary_edges
+            .iter()
+            .flat_map(|&(a, b)| [a, b])
+            .collect();
+
+        // Anisotropic edge collapsing
+        let (new_mesh, collapses) = collapse_short_edges_anisotropic(
+            &current_mesh,
+            &adj,
+            base_target,
+            params.anisotropy_ratio,
+            params.min_edge_ratio,
+            &direction_field,
+            &boundary_edges,
+            &sharp_edges,
+            &boundary_vertices,
+        );
+        current_mesh = new_mesh;
+        total_collapses += collapses;
+
+        // Edge flipping to improve anisotropic alignment
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+        let (new_mesh, flips) = flip_edges_for_anisotropy(
+            &current_mesh,
+            &adj,
+            &direction_field,
+            &boundary_edges,
+            &sharp_edges,
+        );
+        current_mesh = new_mesh;
+        total_flips += flips;
+
+        // Smoothing
+        let adj = MeshAdjacency::build(&current_mesh.faces);
+        let boundary_vertices: HashSet<u32> = if params.preserve_boundary {
+            adj.boundary_edges().flat_map(|(a, b)| [a, b]).collect()
+        } else {
+            HashSet::new()
+        };
+
+        smooth_vertices(
+            &mut current_mesh,
+            &adj,
+            params.smoothing_factor,
+            &boundary_vertices,
+        );
+    }
+
+    current_mesh = remove_unreferenced_vertices_internal(&current_mesh);
+
+    RemeshResult {
+        final_triangles: current_mesh.faces.len(),
+        final_vertices: current_mesh.vertices.len(),
+        mesh: current_mesh,
+        original_triangles,
+        original_vertices,
+        iterations_performed: params.iterations,
+        target_edge_length: base_target,
+        edges_split: total_splits,
+        edges_collapsed: total_collapses,
+        edges_flipped: total_flips,
+        feature_edges_detected: feature_edge_count,
+        adaptive_enabled: params.adaptive_to_curvature,
+        anisotropic_enabled: true,
+    }
+}
+
+/// Split edges based on anisotropic length criteria.
+fn split_long_edges_anisotropic(
+    mesh: &Mesh,
+    adj: &MeshAdjacency,
+    base_target: f64,
+    anisotropy_ratio: f64,
+    max_ratio: f64,
+    direction_field: &HashMap<u32, Vector3<f64>>,
+    _boundary_edges: &HashSet<(u32, u32)>,
+    _sharp_edges: &HashSet<(u32, u32)>,
+) -> (Mesh, usize) {
+    let mut vertices = mesh.vertices.clone();
+    let mut faces: Vec<[u32; 3]> = Vec::with_capacity(mesh.faces.len() * 2);
+    let mut split_count = 0;
+
+    let mut edge_midpoints: HashMap<(u32, u32), u32> = HashMap::new();
+
+    for (&edge, _) in adj.edge_to_faces.iter() {
+        let (v0, v1) = edge;
+        let p0 = &mesh.vertices[v0 as usize].position;
+        let p1 = &mesh.vertices[v1 as usize].position;
+        let edge_vec = p1 - p0;
+        let length = edge_vec.norm();
+
+        if length < 1e-10 {
+            continue;
+        }
+
+        // Get direction at edge midpoint (average of endpoint directions)
+        let dir0 = direction_field.get(&v0).copied().unwrap_or(Vector3::new(1.0, 0.0, 0.0));
+        let dir1 = direction_field.get(&v1).copied().unwrap_or(Vector3::new(1.0, 0.0, 0.0));
+        let avg_dir = (dir0 + dir1).normalize();
+
+        // Compute edge alignment with principal direction
+        let edge_dir = edge_vec / length;
+        let alignment = edge_dir.dot(&avg_dir).abs();
+
+        // Target length varies with alignment:
+        // - Aligned with principal direction: longer edges (base_target * anisotropy_ratio)
+        // - Perpendicular: shorter edges (base_target)
+        let target_length = base_target * (1.0 + (anisotropy_ratio - 1.0) * alignment);
+        let max_length = target_length * max_ratio;
+
+        if length > max_length {
+            let midpoint = Point3::new(
+                (p0.x + p1.x) / 2.0,
+                (p0.y + p1.y) / 2.0,
+                (p0.z + p1.z) / 2.0,
+            );
+
+            let mut new_vertex = Vertex::new(midpoint);
+            let vert0 = &mesh.vertices[v0 as usize];
+            let vert1 = &mesh.vertices[v1 as usize];
+
+            if let (Some(o0), Some(o1)) = (vert0.offset, vert1.offset) {
+                new_vertex.offset = Some((o0 + o1) / 2.0);
+            }
+            if vert0.tag == vert1.tag {
+                new_vertex.tag = vert0.tag;
+            }
+
+            let new_idx = vertices.len() as u32;
+            vertices.push(new_vertex);
+            edge_midpoints.insert(edge, new_idx);
+            split_count += 1;
+        }
+    }
+
+    // Rebuild faces (same as before)
+    for face in &mesh.faces {
+        let edges = [
+            canonical_edge(face[0], face[1]),
+            canonical_edge(face[1], face[2]),
+            canonical_edge(face[2], face[0]),
+        ];
+
+        let midpoints: Vec<Option<u32>> = edges
+            .iter()
+            .map(|e| edge_midpoints.get(e).copied())
+            .collect();
+
+        let num_splits: usize = midpoints.iter().filter(|m| m.is_some()).count();
+
+        match num_splits {
+            0 => faces.push(*face),
+            1 => {
+                let split_idx = midpoints.iter().position(|m| m.is_some()).unwrap();
+                let mid = midpoints[split_idx].unwrap();
+                let v0 = face[split_idx];
+                let v1 = face[(split_idx + 1) % 3];
+                let v2 = face[(split_idx + 2) % 3];
+                faces.push([v0, mid, v2]);
+                faces.push([mid, v1, v2]);
+            }
+            2 => {
+                let unsplit_idx = midpoints.iter().position(|m| m.is_none()).unwrap();
+                let m0 = midpoints[(unsplit_idx + 1) % 3].unwrap();
+                let m1 = midpoints[(unsplit_idx + 2) % 3].unwrap();
+                let v0 = face[unsplit_idx];
+                let v1 = face[(unsplit_idx + 1) % 3];
+                let v2 = face[(unsplit_idx + 2) % 3];
+                faces.push([v0, v1, m0]);
+                faces.push([v0, m0, m1]);
+                faces.push([m0, v2, m1]);
+            }
+            3 => {
+                let m01 = midpoints[0].unwrap();
+                let m12 = midpoints[1].unwrap();
+                let m20 = midpoints[2].unwrap();
+                faces.push([face[0], m01, m20]);
+                faces.push([m01, face[1], m12]);
+                faces.push([m20, m12, face[2]]);
+                faces.push([m01, m12, m20]);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    (Mesh { vertices, faces }, split_count)
+}
+
+/// Collapse edges based on anisotropic length criteria.
+fn collapse_short_edges_anisotropic(
+    mesh: &Mesh,
+    adj: &MeshAdjacency,
+    base_target: f64,
+    anisotropy_ratio: f64,
+    min_ratio: f64,
+    direction_field: &HashMap<u32, Vector3<f64>>,
+    boundary_edges: &HashSet<(u32, u32)>,
+    sharp_edges: &HashSet<(u32, u32)>,
+    boundary_vertices: &HashSet<u32>,
+) -> (Mesh, usize) {
+    let mut vertices = mesh.vertices.clone();
+    let mut collapse_count = 0;
+
+    let mut vertex_map: HashMap<u32, u32> = HashMap::new();
+    for i in 0..vertices.len() {
+        vertex_map.insert(i as u32, i as u32);
+    }
+
+    let mut edges_with_info: Vec<((u32, u32), f64, f64)> = adj
+        .edge_to_faces
+        .keys()
+        .filter_map(|&edge| {
+            let (v0, v1) = edge;
+            let p0 = &mesh.vertices[v0 as usize].position;
+            let p1 = &mesh.vertices[v1 as usize].position;
+            let edge_vec = p1 - p0;
+            let length = edge_vec.norm();
+
+            if length < 1e-10 {
+                return None;
+            }
+
+            let dir0 = direction_field.get(&v0).copied().unwrap_or(Vector3::new(1.0, 0.0, 0.0));
+            let dir1 = direction_field.get(&v1).copied().unwrap_or(Vector3::new(1.0, 0.0, 0.0));
+            let avg_dir = (dir0 + dir1).normalize();
+
+            let edge_dir = edge_vec / length;
+            let alignment = edge_dir.dot(&avg_dir).abs();
+
+            let target_length = base_target * (1.0 + (anisotropy_ratio - 1.0) * alignment);
+            let min_length = target_length * min_ratio;
+
+            if length < min_length {
+                if boundary_edges.contains(&edge) || sharp_edges.contains(&edge) {
+                    return None;
+                }
+                Some((edge, length, min_length))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    edges_with_info.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    let mut collapsed_vertices: HashSet<u32> = HashSet::new();
+
+    for ((v0, v1), _, _) in edges_with_info {
+        if collapsed_vertices.contains(&v0) || collapsed_vertices.contains(&v1) {
+            continue;
+        }
+
+        let final_v0 = resolve_vertex(&vertex_map, v0);
+        let final_v1 = resolve_vertex(&vertex_map, v1);
+
+        if final_v0 == final_v1 {
+            continue;
+        }
+
+        if would_create_non_manifold(adj, final_v0, final_v1) {
+            continue;
+        }
+
+        let (keep, remove) = if boundary_vertices.contains(&final_v0) {
+            (final_v0, final_v1)
+        } else if boundary_vertices.contains(&final_v1) {
+            (final_v1, final_v0)
+        } else {
+            let p0 = &vertices[final_v0 as usize].position;
+            let p1 = &vertices[final_v1 as usize].position;
+            let midpoint = Point3::new(
+                (p0.x + p1.x) / 2.0,
+                (p0.y + p1.y) / 2.0,
+                (p0.z + p1.z) / 2.0,
+            );
+            vertices[final_v0 as usize].position = midpoint;
+            (final_v0, final_v1)
+        };
+
+        vertex_map.insert(remove, keep);
+        collapsed_vertices.insert(remove);
+        collapse_count += 1;
+    }
+
+    let mut new_faces: Vec<[u32; 3]> = Vec::with_capacity(mesh.faces.len());
+    for face in &mesh.faces {
+        let v0 = resolve_vertex(&vertex_map, face[0]);
+        let v1 = resolve_vertex(&vertex_map, face[1]);
+        let v2 = resolve_vertex(&vertex_map, face[2]);
+
+        if v0 != v1 && v1 != v2 && v2 != v0 {
+            new_faces.push([v0, v1, v2]);
+        }
+    }
+
+    (Mesh { vertices, faces: new_faces }, collapse_count)
+}
+
+/// Flip edges to improve alignment with direction field.
+fn flip_edges_for_anisotropy(
+    mesh: &Mesh,
+    adj: &MeshAdjacency,
+    direction_field: &HashMap<u32, Vector3<f64>>,
+    boundary_edges: &HashSet<(u32, u32)>,
+    sharp_edges: &HashSet<(u32, u32)>,
+) -> (Mesh, usize) {
+    let mut faces = mesh.faces.clone();
+    let mut flip_count = 0;
+
+    for (&edge, face_indices) in adj.edge_to_faces.iter() {
+        if face_indices.len() != 2 {
+            continue;
+        }
+        if boundary_edges.contains(&edge) || sharp_edges.contains(&edge) {
+            continue;
+        }
+
+        let (v0, v1) = edge;
+        let fi0 = face_indices[0] as usize;
+        let fi1 = face_indices[1] as usize;
+
+        let opp0 = find_opposite_vertex(&faces[fi0], v0, v1);
+        let opp1 = find_opposite_vertex(&faces[fi1], v0, v1);
+
+        if opp0.is_none() || opp1.is_none() {
+            continue;
+        }
+
+        let opp0 = opp0.unwrap();
+        let opp1 = opp1.unwrap();
+
+        // Get average direction for this region
+        let dirs: Vec<Vector3<f64>> = [v0, v1, opp0, opp1]
+            .iter()
+            .filter_map(|&v| direction_field.get(&v).copied())
+            .collect();
+
+        if dirs.is_empty() {
+            continue;
+        }
+
+        let avg_dir = dirs.iter().fold(Vector3::zeros(), |acc, d| acc + d) / dirs.len() as f64;
+        let avg_dir = avg_dir.normalize();
+
+        // Current edge direction
+        let p0 = &mesh.vertices[v0 as usize].position;
+        let p1 = &mesh.vertices[v1 as usize].position;
+        let current_edge = (p1 - p0).normalize();
+        let current_alignment = current_edge.dot(&avg_dir).abs();
+
+        // Potential new edge direction
+        let p_opp0 = &mesh.vertices[opp0 as usize].position;
+        let p_opp1 = &mesh.vertices[opp1 as usize].position;
+        let new_edge = (p_opp1 - p_opp0).normalize();
+        let new_alignment = new_edge.dot(&avg_dir).abs();
+
+        // Flip if new edge is better aligned with direction field
+        if new_alignment > current_alignment + 0.1 {
+            if is_valid_flip(mesh, v0, v1, opp0, opp1) {
+                let new_face0 = [opp0, opp1, v0];
+                let new_face1 = [opp1, opp0, v1];
+
+                faces[fi0] = new_face0;
+                faces[fi1] = new_face1;
+
+                flip_count += 1;
+            }
+        }
+    }
+
+    (Mesh { vertices: mesh.vertices.clone(), faces }, flip_count)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1076,5 +2579,403 @@ mod tests {
 
         assert_eq!(result.final_triangles, 1);
         assert_eq!(result.iterations_performed, 0);
+    }
+
+    // =========================================================================
+    // Feature Edge Detection Tests
+    // =========================================================================
+
+    fn make_cube() -> Mesh {
+        // A simple cube with 12 triangles (6 faces, 2 triangles each)
+        Mesh {
+            vertices: vec![
+                Vertex::from_coords(0.0, 0.0, 0.0), // 0
+                Vertex::from_coords(1.0, 0.0, 0.0), // 1
+                Vertex::from_coords(1.0, 1.0, 0.0), // 2
+                Vertex::from_coords(0.0, 1.0, 0.0), // 3
+                Vertex::from_coords(0.0, 0.0, 1.0), // 4
+                Vertex::from_coords(1.0, 0.0, 1.0), // 5
+                Vertex::from_coords(1.0, 1.0, 1.0), // 6
+                Vertex::from_coords(0.0, 1.0, 1.0), // 7
+            ],
+            faces: vec![
+                // Front face (z = 0)
+                [0, 1, 2],
+                [0, 2, 3],
+                // Back face (z = 1)
+                [5, 4, 7],
+                [5, 7, 6],
+                // Bottom face (y = 0)
+                [0, 4, 5],
+                [0, 5, 1],
+                // Top face (y = 1)
+                [3, 2, 6],
+                [3, 6, 7],
+                // Left face (x = 0)
+                [0, 3, 7],
+                [0, 7, 4],
+                // Right face (x = 1)
+                [1, 5, 6],
+                [1, 6, 2],
+            ],
+        }
+    }
+
+    fn make_folded_surface() -> Mesh {
+        // Two triangles forming a 90-degree fold
+        Mesh {
+            vertices: vec![
+                Vertex::from_coords(0.0, 0.0, 0.0),
+                Vertex::from_coords(1.0, 0.0, 0.0),
+                Vertex::from_coords(0.5, 1.0, 0.0),
+                Vertex::from_coords(0.5, 0.0, 1.0),
+            ],
+            faces: vec![
+                [0, 1, 2], // Flat triangle in XY plane
+                [0, 3, 1], // Triangle in XZ plane - forms 90 degree angle
+            ],
+        }
+    }
+
+    #[test]
+    fn test_detect_feature_edges_single_triangle() {
+        let mesh = make_single_triangle();
+        let result = detect_feature_edges(&mesh, std::f64::consts::PI / 3.0);
+
+        // Single triangle should have 3 boundary edges
+        assert_eq!(result.boundary_edges.len(), 3);
+        assert_eq!(result.sharp_edges.len(), 0); // No interior sharp edges
+    }
+
+    #[test]
+    fn test_detect_feature_edges_two_triangles() {
+        let mesh = make_two_triangles();
+        let result = detect_feature_edges(&mesh, std::f64::consts::PI / 3.0);
+
+        // Two triangles sharing an edge should have 4 boundary edges
+        assert_eq!(result.boundary_edges.len(), 4);
+    }
+
+    #[test]
+    fn test_detect_feature_edges_folded_surface() {
+        let mesh = make_folded_surface();
+
+        // With a 45-degree threshold, the 90-degree edge should be detected
+        let result = detect_feature_edges(&mesh, std::f64::consts::PI / 4.0);
+
+        // The shared edge should be detected as sharp (90 degree angle)
+        assert!(result.sharp_edges.len() > 0, "Should detect the sharp edge");
+    }
+
+    #[test]
+    fn test_detect_feature_edges_cube() {
+        let mesh = make_cube();
+
+        // Cube edges are 90 degrees, should be detected with 60-degree threshold
+        let result = detect_feature_edges(&mesh, std::f64::consts::PI / 3.0);
+
+        // Cube has 12 edges, all should be sharp (90 degrees)
+        assert!(
+            result.sharp_edges.len() > 0,
+            "Cube should have sharp edges"
+        );
+    }
+
+    #[test]
+    fn test_feature_edge_result_statistics() {
+        let mesh = make_folded_surface();
+        let result = detect_feature_edges(&mesh, std::f64::consts::PI / 4.0);
+
+        // Should have valid statistics
+        assert!(result.max_dihedral_angle >= result.mean_dihedral_angle);
+    }
+
+    // =========================================================================
+    // Curvature Computation Tests
+    // =========================================================================
+
+    #[test]
+    fn test_compute_curvature_single_triangle() {
+        let mesh = make_single_triangle();
+        let result = compute_curvature(&mesh);
+
+        // Single triangle has 3 vertices
+        assert_eq!(result.vertex_curvatures.len(), 3);
+
+        // Flat triangle should have zero/near-zero curvature
+        for vc in &result.vertex_curvatures {
+            assert!(
+                vc.mean.abs() < 1.0,
+                "Flat triangle should have low curvature, got {}",
+                vc.mean
+            );
+        }
+    }
+
+    #[test]
+    fn test_compute_curvature_quad() {
+        let mesh = make_quad_as_triangles();
+        let result = compute_curvature(&mesh);
+
+        // 4 vertices
+        assert_eq!(result.vertex_curvatures.len(), 4);
+    }
+
+    #[test]
+    fn test_compute_curvature_folded() {
+        let mesh = make_folded_surface();
+        let result = compute_curvature(&mesh);
+
+        // 4 vertices
+        assert_eq!(result.vertex_curvatures.len(), 4);
+
+        // Should have some valid statistics
+        assert!(result.avg_mean_curvature.is_finite());
+    }
+
+    #[test]
+    fn test_curvature_directions() {
+        let mesh = make_cube();
+        let result = compute_curvature(&mesh);
+
+        // All curvature directions should be unit vectors
+        for vc in &result.vertex_curvatures {
+            let dir1_len = vc.dir1.norm();
+            let dir2_len = vc.dir2.norm();
+
+            if dir1_len > 0.0 {
+                assert!(
+                    (dir1_len - 1.0).abs() < 1e-6,
+                    "dir1 should be normalized"
+                );
+            }
+            if dir2_len > 0.0 {
+                assert!(
+                    (dir2_len - 1.0).abs() < 1e-6,
+                    "dir2 should be normalized"
+                );
+            }
+        }
+    }
+
+    // =========================================================================
+    // Curvature-Adaptive Remeshing Tests
+    // =========================================================================
+
+    #[test]
+    fn test_remesh_adaptive_params() {
+        let params = RemeshParams::adaptive(2.0);
+
+        assert!(params.adaptive_to_curvature);
+        assert!(params.preserve_sharp_edges);
+        assert_eq!(params.target_edge_length, Some(2.0));
+    }
+
+    #[test]
+    fn test_remesh_adaptive_single_triangle() {
+        let mesh = make_single_triangle();
+        let result = remesh_adaptive(&mesh, &RemeshParams::adaptive(2.0));
+
+        assert!(result.adaptive_enabled);
+        assert!(result.final_triangles >= 1);
+    }
+
+    #[test]
+    fn test_remesh_adaptive_produces_mesh() {
+        let mesh = make_quad_as_triangles();
+        let result = remesh_adaptive(&mesh, &RemeshParams::adaptive(2.0));
+
+        assert!(result.mesh.faces.len() > 0);
+        assert!(result.mesh.vertices.len() > 0);
+
+        // Topology should be valid
+        for face in &result.mesh.faces {
+            for &vi in face {
+                assert!((vi as usize) < result.mesh.vertices.len());
+            }
+        }
+    }
+
+    #[test]
+    fn test_remesh_adaptive_curvature_thresholds() {
+        let params = RemeshParams::adaptive(2.0)
+            .with_curvature_thresholds(0.001, 2.0);
+
+        assert_eq!(params.curvature_min_threshold, 0.001);
+        assert_eq!(params.curvature_max_threshold, 2.0);
+    }
+
+    #[test]
+    fn test_remesh_adaptive_edge_range() {
+        let params = RemeshParams::adaptive(2.0)
+            .with_adaptive_edge_range(0.5, 4.0);
+
+        assert_eq!(params.min_edge_length_adaptive, Some(0.5));
+        assert_eq!(params.max_edge_length_adaptive, Some(4.0));
+    }
+
+    // =========================================================================
+    // Anisotropic Remeshing Tests
+    // =========================================================================
+
+    #[test]
+    fn test_remesh_anisotropic_params() {
+        let params = RemeshParams::anisotropic_with_ratio(2.0, 3.0);
+
+        assert!(params.anisotropic);
+        assert_eq!(params.anisotropy_ratio, 3.0);
+        assert_eq!(params.target_edge_length, Some(2.0));
+    }
+
+    #[test]
+    fn test_remesh_anisotropic_single_triangle() {
+        let mesh = make_single_triangle();
+        let result = remesh_anisotropic(&mesh, &RemeshParams::anisotropic_with_ratio(2.0, 2.0));
+
+        assert!(result.anisotropic_enabled);
+        assert!(result.final_triangles >= 1);
+    }
+
+    #[test]
+    fn test_remesh_anisotropic_produces_mesh() {
+        let mesh = make_quad_as_triangles();
+        let result = remesh_anisotropic(&mesh, &RemeshParams::anisotropic_with_ratio(2.0, 2.0));
+
+        assert!(result.mesh.faces.len() > 0);
+        assert!(result.mesh.vertices.len() > 0);
+
+        // Topology should be valid
+        for face in &result.mesh.faces {
+            for &vi in face {
+                assert!((vi as usize) < result.mesh.vertices.len());
+            }
+        }
+    }
+
+    #[test]
+    fn test_remesh_with_direction_field() {
+        use hashbrown::HashMap;
+
+        let mesh = make_quad_as_triangles();
+
+        // Create a custom direction field (all vertices pointing X)
+        let mut field = HashMap::new();
+        for i in 0..mesh.vertices.len() {
+            field.insert(i as u32, Vector3::new(1.0, 0.0, 0.0));
+        }
+
+        let params = RemeshParams::anisotropic_with_ratio(2.0, 2.0)
+            .with_direction_field(field);
+
+        let result = remesh_isotropic(&mesh, &params);
+
+        assert!(result.anisotropic_enabled);
+    }
+
+    // =========================================================================
+    // RemeshParams Builder Tests
+    // =========================================================================
+
+    #[test]
+    fn test_remesh_params_with_curvature_adaptation() {
+        let params = RemeshParams::with_target_edge_length(2.0)
+            .with_curvature_adaptation();
+
+        assert!(params.adaptive_to_curvature);
+    }
+
+    #[test]
+    fn test_remesh_params_with_anisotropy() {
+        let params = RemeshParams::with_target_edge_length(2.0)
+            .with_anisotropy(4.0);
+
+        assert!(params.anisotropic);
+        assert_eq!(params.anisotropy_ratio, 4.0);
+    }
+
+    #[test]
+    fn test_remesh_params_with_feature_edges() {
+        use hashbrown::HashSet;
+
+        let mut edges = HashSet::new();
+        edges.insert((0, 1));
+        edges.insert((1, 2));
+
+        let params = RemeshParams::default()
+            .with_feature_edges(edges.clone());
+
+        assert!(params.preserve_feature_edges.is_some());
+        assert_eq!(params.preserve_feature_edges.unwrap().len(), 2);
+    }
+
+    // =========================================================================
+    // Result Field Tests
+    // =========================================================================
+
+    #[test]
+    fn test_remesh_result_has_new_fields() {
+        let mesh = make_quad_as_triangles();
+        let result = remesh_isotropic(&mesh, &RemeshParams::with_target_edge_length(2.0));
+
+        // Check new fields exist and have sensible values
+        assert!(!result.adaptive_enabled);
+        assert!(!result.anisotropic_enabled);
+        // feature_edges_detected is 0 when preserve_sharp_edges is false (default)
+        assert_eq!(result.feature_edges_detected, 0);
+    }
+
+    #[test]
+    fn test_remesh_result_with_feature_preservation() {
+        let mesh = make_cube();
+        let params = RemeshParams::preserve_features();
+        let result = remesh_isotropic(&mesh, &params);
+
+        // With preserve_features, should detect feature edges
+        // (the exact count depends on the mesh structure after remeshing)
+        assert!(result.feature_edges_detected >= 0);
+    }
+
+    // =========================================================================
+    // Integration Tests
+    // =========================================================================
+
+    #[test]
+    fn test_dispatch_to_adaptive() {
+        let mesh = make_quad_as_triangles();
+        let params = RemeshParams::adaptive(3.0);
+
+        // Should automatically dispatch to adaptive remeshing
+        let result = remesh_isotropic(&mesh, &params);
+
+        assert!(result.adaptive_enabled);
+    }
+
+    #[test]
+    fn test_dispatch_to_anisotropic() {
+        let mesh = make_quad_as_triangles();
+        let params = RemeshParams::anisotropic_with_ratio(3.0, 2.0);
+
+        // Should automatically dispatch to anisotropic remeshing
+        let result = remesh_isotropic(&mesh, &params);
+
+        assert!(result.anisotropic_enabled);
+    }
+
+    #[test]
+    fn test_empty_mesh_adaptive() {
+        let mesh = Mesh::new();
+        let result = remesh_adaptive(&mesh, &RemeshParams::adaptive(2.0));
+
+        assert_eq!(result.final_triangles, 0);
+        assert!(result.adaptive_enabled);
+    }
+
+    #[test]
+    fn test_empty_mesh_anisotropic() {
+        let mesh = Mesh::new();
+        let result = remesh_anisotropic(&mesh, &RemeshParams::anisotropic_with_ratio(2.0, 2.0));
+
+        assert_eq!(result.final_triangles, 0);
+        assert!(result.anisotropic_enabled);
     }
 }

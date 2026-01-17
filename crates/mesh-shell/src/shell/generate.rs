@@ -4,7 +4,7 @@
 
 use tracing::{debug, info, warn};
 
-use mesh_repair::{compute_vertex_normals, Mesh};
+use mesh_repair::{compute_vertex_normals, Mesh, ThicknessMap};
 
 use super::rim::{generate_rim, generate_rim_for_sdf_shell};
 use super::validation::{validate_shell, ShellValidationResult};
@@ -45,7 +45,12 @@ impl std::fmt::Display for WallGenerationMethod {
 #[derive(Debug, Clone)]
 pub struct ShellParams {
     /// Uniform wall thickness in mm.
+    /// Used when `thickness_map` is None.
     pub wall_thickness_mm: f64,
+    /// Variable wall thickness map.
+    /// When set, per-vertex thickness values override `wall_thickness_mm`.
+    /// This enables different wall thicknesses in different regions (e.g., thick heel, thin arch).
+    pub thickness_map: Option<ThicknessMap>,
     /// Minimum acceptable wall thickness.
     pub min_thickness_mm: f64,
     /// Whether to validate the shell after generation.
@@ -65,6 +70,7 @@ impl Default for ShellParams {
     fn default() -> Self {
         Self {
             wall_thickness_mm: 2.5,
+            thickness_map: None,
             min_thickness_mm: 1.5,
             validate_after_generation: true,
             wall_generation_method: WallGenerationMethod::Normal,
@@ -75,6 +81,33 @@ impl Default for ShellParams {
 }
 
 impl ShellParams {
+    /// Set the thickness map for variable wall thickness.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mesh_shell::ShellParams;
+    /// use mesh_repair::ThicknessMap;
+    ///
+    /// let thickness_map = ThicknessMap::new(2.0); // 2mm default
+    /// let params = ShellParams::default().with_thickness_map(thickness_map);
+    /// ```
+    pub fn with_thickness_map(mut self, map: ThicknessMap) -> Self {
+        self.thickness_map = Some(map);
+        self
+    }
+
+    /// Create params with a uniform thickness map.
+    ///
+    /// This is equivalent to setting `wall_thickness_mm`, but using the
+    /// thickness map infrastructure.
+    pub fn with_uniform_thickness(mut self, thickness: f64) -> Self {
+        self.thickness_map = Some(ThicknessMap::uniform(thickness));
+        self.wall_thickness_mm = thickness;
+        self
+    }
+
+
     /// Create params optimized for high-quality output with consistent wall thickness.
     ///
     /// Uses SDF-based wall generation for consistent thickness at corners.
@@ -96,6 +129,17 @@ impl ShellParams {
             ..Default::default()
         }
     }
+
+    /// Get the wall thickness for a specific vertex index.
+    ///
+    /// If a thickness map is set, uses the per-vertex value.
+    /// Otherwise, returns the uniform `wall_thickness_mm`.
+    pub fn get_vertex_thickness(&self, vertex_index: u32) -> f64 {
+        self.thickness_map
+            .as_ref()
+            .map(|m| m.get_vertex_thickness(vertex_index))
+            .unwrap_or(self.wall_thickness_mm)
+    }
 }
 
 /// Result of shell generation.
@@ -115,6 +159,8 @@ pub struct ShellResult {
     pub validation: Option<ShellValidationResult>,
     /// Wall generation method used.
     pub wall_method: WallGenerationMethod,
+    /// Whether variable thickness was used.
+    pub variable_thickness: bool,
 }
 
 /// Generate a printable shell from the inner surface.
@@ -129,10 +175,19 @@ pub struct ShellResult {
 /// # Returns
 /// A tuple of (shell mesh, generation result).
 pub fn generate_shell(inner_shell: &Mesh, params: &ShellParams) -> (Mesh, ShellResult) {
-    info!(
-        "Generating shell with thickness={:.2}mm, method={}",
-        params.wall_thickness_mm, params.wall_generation_method
-    );
+    let has_variable_thickness = params.thickness_map.is_some();
+
+    if has_variable_thickness {
+        info!(
+            "Generating shell with variable thickness (default={:.2}mm), method={}",
+            params.wall_thickness_mm, params.wall_generation_method
+        );
+    } else {
+        info!(
+            "Generating shell with thickness={:.2}mm, method={}",
+            params.wall_thickness_mm, params.wall_generation_method
+        );
+    }
 
     match params.wall_generation_method {
         WallGenerationMethod::Normal => generate_shell_normal(inner_shell, params),
@@ -150,15 +205,20 @@ fn generate_shell_normal(inner_shell: &Mesh, params: &ShellParams) -> (Mesh, She
     compute_vertex_normals(&mut inner_with_normals);
 
     // Step 2: Generate outer vertices by offsetting along normals
+    // Copy inner vertices first
     for vertex in &inner_with_normals.vertices {
         // Inner vertex (copy directly)
         shell.vertices.push(vertex.clone());
     }
 
-    for vertex in &inner_with_normals.vertices {
+    // Generate outer vertices with per-vertex thickness
+    for (i, vertex) in inner_with_normals.vertices.iter().enumerate() {
+        // Get thickness for this vertex (uses thickness map if available)
+        let thickness = params.get_vertex_thickness(i as u32);
+
         // Outer vertex (offset by wall thickness)
         let normal = vertex.normal.unwrap_or_else(|| nalgebra::Vector3::new(0.0, 0.0, 1.0));
-        let outer_pos = vertex.position + normal * params.wall_thickness_mm;
+        let outer_pos = vertex.position + normal * thickness;
 
         let mut outer_vertex = vertex.clone();
         outer_vertex.position = outer_pos;
@@ -221,14 +281,28 @@ fn generate_shell_normal(inner_shell: &Mesh, params: &ShellParams) -> (Mesh, She
         boundary_size,
         validation,
         wall_method: WallGenerationMethod::Normal,
+        variable_thickness: params.thickness_map.is_some(),
     };
 
     (shell, result)
 }
 
 /// Generate shell using SDF-based offset for consistent wall thickness.
+///
+/// Note: Variable thickness (ThicknessMap) is not fully supported with SDF method.
+/// The SDF method uses uniform wall thickness for consistent geometry.
+/// For variable thickness, use `WallGenerationMethod::Normal`.
 fn generate_shell_sdf(inner_shell: &Mesh, params: &ShellParams) -> (Mesh, ShellResult) {
     let inner_vertex_count = inner_shell.vertices.len();
+
+    // Warn if using variable thickness with SDF (not fully supported)
+    if params.thickness_map.is_some() {
+        warn!(
+            "Variable thickness (ThicknessMap) is not fully supported with SDF wall generation. \
+             Using uniform thickness={:.2}mm. Consider using WallGenerationMethod::Normal for variable thickness.",
+            params.wall_thickness_mm
+        );
+    }
 
     // Step 1: Ensure inner mesh has normals
     let mut inner_with_normals = inner_shell.clone();
@@ -353,6 +427,7 @@ fn generate_shell_sdf(inner_shell: &Mesh, params: &ShellParams) -> (Mesh, ShellR
         boundary_size,
         validation,
         wall_method: WallGenerationMethod::Sdf,
+        variable_thickness: false, // SDF doesn't support variable thickness
     };
 
     (shell, result)
@@ -522,5 +597,99 @@ mod tests {
             shell_extent.y,
             inner_extent.y
         );
+    }
+
+    #[test]
+    fn test_variable_thickness_params() {
+        let mut thickness_map = ThicknessMap::new(2.0);
+        thickness_map.set_vertex_thickness(0, 3.0);
+        thickness_map.set_vertex_thickness(1, 1.5);
+
+        let params = ShellParams::default().with_thickness_map(thickness_map);
+
+        assert!(params.thickness_map.is_some());
+        assert_eq!(params.get_vertex_thickness(0), 3.0);
+        assert_eq!(params.get_vertex_thickness(1), 1.5);
+        assert_eq!(params.get_vertex_thickness(2), 2.0); // Default
+    }
+
+    #[test]
+    fn test_variable_thickness_shell_generation() {
+        let inner = create_open_box();
+
+        // Create thickness map: bottom vertices thin (1mm), top vertices thick (3mm)
+        let mut thickness_map = ThicknessMap::new(2.0);
+        // Bottom vertices (0-3) are thin
+        for i in 0..4 {
+            thickness_map.set_vertex_thickness(i, 1.0);
+        }
+        // Top vertices (4-7) are thick
+        for i in 4..8 {
+            thickness_map.set_vertex_thickness(i, 3.0);
+        }
+
+        let params = ShellParams {
+            wall_generation_method: WallGenerationMethod::Normal,
+            validate_after_generation: false,
+            ..ShellParams::default()
+        }
+        .with_thickness_map(thickness_map);
+
+        let (shell, result) = generate_shell(&inner, &params);
+
+        // Check that variable thickness was reported
+        assert!(result.variable_thickness);
+
+        // Verify the shell has correct structure
+        assert_eq!(shell.vertices.len(), inner.vertices.len() * 2);
+
+        // Check that bottom outer vertices are offset less than top outer vertices
+        let inner_vertex_count = inner.vertices.len();
+
+        // Outer vertex 0 (bottom) should be offset ~1mm from inner vertex 0
+        let inner_v0 = shell.vertices[0].position;
+        let outer_v0 = shell.vertices[inner_vertex_count + 0].position;
+        let offset_0 = (outer_v0 - inner_v0).norm();
+
+        // Outer vertex 4 (top) should be offset ~3mm from inner vertex 4
+        let inner_v4 = shell.vertices[4].position;
+        let outer_v4 = shell.vertices[inner_vertex_count + 4].position;
+        let offset_4 = (outer_v4 - inner_v4).norm();
+
+        assert!(
+            offset_4 > offset_0,
+            "Top vertices should have larger offset: {} vs {}",
+            offset_4,
+            offset_0
+        );
+
+        // The offsets should be close to their target values (within tolerance due to normal direction)
+        assert!(offset_0 < 2.0, "Bottom offset should be around 1mm: {}", offset_0);
+        assert!(offset_4 > 2.0, "Top offset should be around 3mm: {}", offset_4);
+    }
+
+    #[test]
+    fn test_uniform_thickness_via_map() {
+        let inner = create_open_box();
+
+        // Use uniform thickness via map (should behave same as default)
+        let params = ShellParams::default().with_uniform_thickness(2.5);
+
+        let (_shell, result) = generate_shell(&inner, &params);
+
+        assert!(result.variable_thickness); // Still counts as using thickness map
+        assert_eq!(params.wall_thickness_mm, 2.5);
+    }
+
+    #[test]
+    fn test_get_vertex_thickness_without_map() {
+        let params = ShellParams {
+            wall_thickness_mm: 3.0,
+            ..Default::default()
+        };
+
+        // Without a thickness map, should return the uniform wall thickness
+        assert_eq!(params.get_vertex_thickness(0), 3.0);
+        assert_eq!(params.get_vertex_thickness(100), 3.0);
     }
 }

@@ -841,6 +841,519 @@ const RELS_XML: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 </Relationships>
 "#;
 
+/// Parameters for 3MF export with material zones.
+#[derive(Debug, Clone)]
+pub struct ThreeMfExportParams {
+    /// Material zones to include in the export.
+    pub material_zones: Vec<crate::region::MaterialZone>,
+    /// Whether to include mesh regions as separate components.
+    pub include_regions: bool,
+    /// Region map to export (if include_regions is true).
+    pub region_map: Option<crate::region::RegionMap>,
+}
+
+impl Default for ThreeMfExportParams {
+    fn default() -> Self {
+        Self {
+            material_zones: Vec::new(),
+            include_regions: false,
+            region_map: None,
+        }
+    }
+}
+
+impl ThreeMfExportParams {
+    /// Create new export params with material zones.
+    pub fn with_materials(zones: Vec<crate::region::MaterialZone>) -> Self {
+        Self {
+            material_zones: zones,
+            include_regions: false,
+            region_map: None,
+        }
+    }
+
+    /// Create new export params with regions.
+    pub fn with_regions(region_map: crate::region::RegionMap) -> Self {
+        Self {
+            material_zones: Vec::new(),
+            include_regions: true,
+            region_map: Some(region_map),
+        }
+    }
+
+    /// Add a material zone.
+    pub fn add_material_zone(mut self, zone: crate::region::MaterialZone) -> Self {
+        self.material_zones.push(zone);
+        self
+    }
+}
+
+/// Result from loading a 3MF file with materials.
+#[derive(Debug)]
+pub struct ThreeMfLoadResult {
+    /// The loaded mesh.
+    pub mesh: Mesh,
+    /// Material zones parsed from the file.
+    pub material_zones: Vec<crate::region::MaterialZone>,
+    /// Per-triangle material indices (index into material_zones).
+    pub triangle_materials: Vec<Option<usize>>,
+}
+
+/// Save mesh to 3MF file with material zones.
+///
+/// This function exports the mesh with the 3MF Materials and Properties Extension,
+/// allowing per-triangle material assignments based on the provided material zones.
+///
+/// # Arguments
+/// * `mesh` - The mesh to save
+/// * `path` - Output file path
+/// * `params` - Export parameters including material zones
+///
+/// # Example
+/// ```no_run
+/// use mesh_repair::{Mesh, save_3mf_with_materials, ThreeMfExportParams};
+/// use mesh_repair::region::{MaterialZone, MeshRegion};
+///
+/// let mesh = Mesh::new();
+/// let region = MeshRegion::from_faces("heel", vec![0, 1, 2]);
+/// let zone = MaterialZone::new(region, "TPU-95A")
+///     .with_color(255, 128, 0)
+///     .with_shore_hardness(95.0);
+///
+/// let params = ThreeMfExportParams::with_materials(vec![zone]);
+/// save_3mf_with_materials(&mesh, std::path::Path::new("output.3mf"), &params).unwrap();
+/// ```
+pub fn save_3mf_with_materials(
+    mesh: &Mesh,
+    path: &Path,
+    params: &ThreeMfExportParams,
+) -> MeshResult<()> {
+    info!(
+        "Saving mesh to {:?} (3MF format with {} material zones)",
+        path,
+        params.material_zones.len()
+    );
+
+    let file = File::create(path).map_err(|e| MeshError::IoWrite {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
+
+    let mut zip = zip::ZipWriter::new(file);
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+
+    // Write content types file (required by 3MF spec)
+    zip.start_file("[Content_Types].xml", options)
+        .map_err(|e| MeshError::IoWrite {
+            path: path.to_path_buf(),
+            source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+        })?;
+    zip.write_all(CONTENT_TYPES_XML.as_bytes())
+        .map_err(|e| MeshError::IoWrite {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+
+    // Write relationships file
+    zip.start_file("_rels/.rels", options)
+        .map_err(|e| MeshError::IoWrite {
+            path: path.to_path_buf(),
+            source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+        })?;
+    zip.write_all(RELS_XML.as_bytes())
+        .map_err(|e| MeshError::IoWrite {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+
+    // Write the model file with materials
+    zip.start_file("3D/3dmodel.model", options)
+        .map_err(|e| MeshError::IoWrite {
+            path: path.to_path_buf(),
+            source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+        })?;
+
+    let model_xml = generate_3mf_model_xml_with_materials(mesh, params);
+    zip.write_all(model_xml.as_bytes())
+        .map_err(|e| MeshError::IoWrite {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+
+    zip.finish().map_err(|e| MeshError::IoWrite {
+        path: path.to_path_buf(),
+        source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+    })?;
+
+    info!(
+        "Saved {} vertices, {} faces, {} materials to {:?} (3MF)",
+        mesh.vertices.len(),
+        mesh.faces.len(),
+        params.material_zones.len(),
+        path
+    );
+
+    Ok(())
+}
+
+/// Generate 3MF model XML with materials extension.
+fn generate_3mf_model_xml_with_materials(mesh: &Mesh, params: &ThreeMfExportParams) -> String {
+    let has_materials = !params.material_zones.is_empty();
+
+    let mut xml = String::with_capacity(mesh.vertices.len() * 50 + mesh.faces.len() * 50);
+
+    // XML header and model element with materials namespace if needed
+    if has_materials {
+        xml.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02">
+  <resources>
+"#);
+
+        // Write basematerials resource
+        xml.push_str("    <basematerials id=\"1\">\n");
+        for zone in &params.material_zones {
+            let (r, g, b) = zone.properties.color.unwrap_or((128, 128, 128));
+            // 3MF uses sRGB hex color format
+            xml.push_str(&format!(
+                "      <base name=\"{}\" displaycolor=\"#{:02X}{:02X}{:02X}\"/>\n",
+                escape_xml(&zone.material_name),
+                r,
+                g,
+                b
+            ));
+        }
+        xml.push_str("    </basematerials>\n");
+
+        // Write mesh object with material references
+        xml.push_str(r#"    <object id="2" type="model" pid="1" pindex="0">
+      <mesh>
+        <vertices>
+"#);
+    } else {
+        xml.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+"#);
+    }
+
+    // Write vertices
+    for v in &mesh.vertices {
+        xml.push_str(&format!(
+            "          <vertex x=\"{:.6}\" y=\"{:.6}\" z=\"{:.6}\"/>\n",
+            v.position.x, v.position.y, v.position.z
+        ));
+    }
+
+    xml.push_str("        </vertices>\n        <triangles>\n");
+
+    // Build face-to-material map
+    let face_materials = build_face_material_map(mesh, params);
+
+    // Write triangles with material references
+    for (face_idx, face) in mesh.faces.iter().enumerate() {
+        if has_materials {
+            if let Some(mat_idx) = face_materials.get(&(face_idx as u32)) {
+                // Triangle with material: pid references the basematerials group,
+                // p1 is the material index within that group
+                xml.push_str(&format!(
+                    "          <triangle v1=\"{}\" v2=\"{}\" v3=\"{}\" pid=\"1\" p1=\"{}\"/>\n",
+                    face[0], face[1], face[2], mat_idx
+                ));
+            } else {
+                // Triangle without material assignment uses default (first material)
+                xml.push_str(&format!(
+                    "          <triangle v1=\"{}\" v2=\"{}\" v3=\"{}\" pid=\"1\" p1=\"0\"/>\n",
+                    face[0], face[1], face[2]
+                ));
+            }
+        } else {
+            xml.push_str(&format!(
+                "          <triangle v1=\"{}\" v2=\"{}\" v3=\"{}\"/>\n",
+                face[0], face[1], face[2]
+            ));
+        }
+    }
+
+    if has_materials {
+        xml.push_str(r#"        </triangles>
+      </mesh>
+    </object>
+  </resources>
+  <build>
+    <item objectid="2"/>
+  </build>
+</model>
+"#);
+    } else {
+        xml.push_str(r#"        </triangles>
+      </mesh>
+    </object>
+  </resources>
+  <build>
+    <item objectid="1"/>
+  </build>
+</model>
+"#);
+    }
+
+    xml
+}
+
+/// Build a map from face index to material zone index.
+fn build_face_material_map(
+    mesh: &Mesh,
+    params: &ThreeMfExportParams,
+) -> std::collections::HashMap<u32, usize> {
+    use std::collections::HashMap;
+
+    let mut face_materials: HashMap<u32, usize> = HashMap::new();
+
+    for (mat_idx, zone) in params.material_zones.iter().enumerate() {
+        // If the zone has faces directly assigned, use those
+        if !zone.region.faces.is_empty() {
+            for &face_idx in &zone.region.faces {
+                face_materials.insert(face_idx, mat_idx);
+            }
+        } else if !zone.region.vertices.is_empty() {
+            // Otherwise, find faces that have ALL vertices in this region
+            for (face_idx, face) in mesh.faces.iter().enumerate() {
+                let all_in_region = face
+                    .iter()
+                    .all(|&v| zone.region.vertices.contains(&v));
+                if all_in_region {
+                    face_materials.insert(face_idx as u32, mat_idx);
+                }
+            }
+        }
+    }
+
+    face_materials
+}
+
+/// Escape special XML characters.
+fn escape_xml(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+/// Load 3MF file with material zone information.
+///
+/// This function parses the 3MF Materials and Properties Extension to extract
+/// per-triangle material assignments and reconstruct material zones.
+///
+/// # Arguments
+/// * `path` - Path to the 3MF file
+///
+/// # Returns
+/// A `ThreeMfLoadResult` containing the mesh, material zones, and per-triangle
+/// material assignments.
+pub fn load_3mf_with_materials(path: &Path) -> MeshResult<ThreeMfLoadResult> {
+    use quick_xml::events::Event;
+    use quick_xml::Reader;
+
+    info!("Loading 3MF with materials from {:?}", path);
+
+    let file = File::open(path).map_err(|e| MeshError::IoRead {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
+
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| MeshError::ParseError {
+        path: path.to_path_buf(),
+        details: format!("Invalid ZIP archive: {}", e),
+    })?;
+
+    // Find and read the 3D model file into a string
+    let mut model_content = String::new();
+    {
+        let mut model_file = archive.by_name("3D/3dmodel.model").map_err(|_| {
+            MeshError::ParseError {
+                path: path.to_path_buf(),
+                details: "3MF archive missing 3D/3dmodel.model".to_string(),
+            }
+        })?;
+        model_file
+            .read_to_string(&mut model_content)
+            .map_err(|e| MeshError::IoRead {
+                path: path.to_path_buf(),
+                source: e,
+            })?;
+    }
+
+    let mut reader = Reader::from_str(&model_content);
+    reader.config_mut().trim_text(true);
+
+    let mut mesh = Mesh::new();
+
+    // Material parsing state
+    let mut base_materials: Vec<(String, Option<(u8, u8, u8)>)> = Vec::new(); // (name, color)
+    let mut in_basematerials = false;
+    let mut basematerials_id: Option<String> = None;
+
+    // Triangle material assignments
+    let mut triangle_materials: Vec<Option<usize>> = Vec::new();
+
+    // Parse XML
+    loop {
+        match reader.read_event() {
+            Ok(Event::Empty(ref e)) | Ok(Event::Start(ref e)) => {
+                let local_name = e.local_name();
+                match local_name.as_ref() {
+                    b"vertex" => {
+                        let mut x = 0.0_f64;
+                        let mut y = 0.0_f64;
+                        let mut z = 0.0_f64;
+
+                        for attr in e.attributes().flatten() {
+                            let value = String::from_utf8_lossy(&attr.value);
+                            match attr.key.local_name().as_ref() {
+                                b"x" => x = value.parse().unwrap_or(0.0),
+                                b"y" => y = value.parse().unwrap_or(0.0),
+                                b"z" => z = value.parse().unwrap_or(0.0),
+                                _ => {}
+                            }
+                        }
+
+                        mesh.vertices.push(Vertex::from_coords(x, y, z));
+                    }
+                    b"triangle" => {
+                        let mut v1 = 0_u32;
+                        let mut v2 = 0_u32;
+                        let mut v3 = 0_u32;
+                        let mut pid: Option<String> = None;
+                        let mut p1: Option<usize> = None;
+
+                        for attr in e.attributes().flatten() {
+                            let value = String::from_utf8_lossy(&attr.value);
+                            match attr.key.local_name().as_ref() {
+                                b"v1" => v1 = value.parse().unwrap_or(0),
+                                b"v2" => v2 = value.parse().unwrap_or(0),
+                                b"v3" => v3 = value.parse().unwrap_or(0),
+                                b"pid" => pid = Some(value.to_string()),
+                                b"p1" => p1 = value.parse().ok(),
+                                _ => {}
+                            }
+                        }
+
+                        mesh.faces.push([v1, v2, v3]);
+
+                        // Track material assignment
+                        if pid.is_some() && basematerials_id.is_some() && p1.is_some() {
+                            if pid == basematerials_id {
+                                triangle_materials.push(p1);
+                            } else {
+                                triangle_materials.push(None);
+                            }
+                        } else {
+                            triangle_materials.push(None);
+                        }
+                    }
+                    b"basematerials" => {
+                        in_basematerials = true;
+                        for attr in e.attributes().flatten() {
+                            let value = String::from_utf8_lossy(&attr.value);
+                            if attr.key.local_name().as_ref() == b"id" {
+                                basematerials_id = Some(value.to_string());
+                            }
+                        }
+                    }
+                    b"base" if in_basematerials => {
+                        let mut name = String::new();
+                        let mut color: Option<(u8, u8, u8)> = None;
+
+                        for attr in e.attributes().flatten() {
+                            let value = String::from_utf8_lossy(&attr.value);
+                            match attr.key.local_name().as_ref() {
+                                b"name" => name = value.to_string(),
+                                b"displaycolor" => {
+                                    color = parse_hex_color(&value);
+                                }
+                                _ => {}
+                            }
+                        }
+
+                        base_materials.push((name, color));
+                    }
+                    _ => {}
+                }
+            }
+            Ok(Event::End(ref e)) => {
+                if e.local_name().as_ref() == b"basematerials" {
+                    in_basematerials = false;
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => {
+                return Err(MeshError::ParseError {
+                    path: path.to_path_buf(),
+                    details: format!("XML parse error: {}", e),
+                });
+            }
+            _ => {}
+        }
+    }
+
+    // Build material zones from parsed data
+    let mut material_zones = Vec::new();
+    for (mat_idx, (name, color)) in base_materials.iter().enumerate() {
+        // Collect faces assigned to this material
+        let face_indices: Vec<u32> = triangle_materials
+            .iter()
+            .enumerate()
+            .filter_map(|(face_idx, mat)| {
+                if *mat == Some(mat_idx) {
+                    Some(face_idx as u32)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if !face_indices.is_empty() || mat_idx < base_materials.len() {
+            let region = crate::region::MeshRegion::from_faces(name.clone(), face_indices);
+            let mut zone = crate::region::MaterialZone::new(region, name.clone());
+            if let Some((r, g, b)) = color {
+                zone = zone.with_color(*r, *g, *b);
+            }
+            material_zones.push(zone);
+        }
+    }
+
+    debug!(
+        "3MF loaded with materials: {} vertices, {} faces, {} materials",
+        mesh.vertices.len(),
+        mesh.faces.len(),
+        material_zones.len()
+    );
+
+    Ok(ThreeMfLoadResult {
+        mesh,
+        material_zones,
+        triangle_materials,
+    })
+}
+
+/// Parse a hex color string like "#FF8000" to (r, g, b).
+fn parse_hex_color(s: &str) -> Option<(u8, u8, u8)> {
+    let s = s.trim_start_matches('#');
+    if s.len() != 6 {
+        return None;
+    }
+
+    let r = u8::from_str_radix(&s[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&s[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+
+    Some((r, g, b))
+}
+
 /// Save mesh to PLY file (ASCII format for maximum compatibility).
 ///
 /// PLY (Polygon File Format) is widely supported by 3D scanning software,
@@ -1602,5 +2115,209 @@ mod tests {
             let diff = (orig_n - loaded_n).norm();
             assert!(diff < 1e-5, "PLY vertex {} normal mismatch", i);
         }
+    }
+
+    #[test]
+    fn test_3mf_with_materials_roundtrip() {
+        use crate::region::{MaterialZone, MeshRegion};
+
+        // Create a simple cube mesh (8 vertices, 12 faces)
+        let mut mesh = Mesh::new();
+        // Bottom face vertices
+        mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+        mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+        mesh.vertices.push(Vertex::from_coords(10.0, 10.0, 0.0));
+        mesh.vertices.push(Vertex::from_coords(0.0, 10.0, 0.0));
+        // Top face vertices
+        mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 10.0));
+        mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 10.0));
+        mesh.vertices.push(Vertex::from_coords(10.0, 10.0, 10.0));
+        mesh.vertices.push(Vertex::from_coords(0.0, 10.0, 10.0));
+
+        // 12 triangles for the cube
+        // Bottom face (z=0)
+        mesh.faces.push([0, 2, 1]);
+        mesh.faces.push([0, 3, 2]);
+        // Top face (z=10)
+        mesh.faces.push([4, 5, 6]);
+        mesh.faces.push([4, 6, 7]);
+        // Front face (y=0)
+        mesh.faces.push([0, 1, 5]);
+        mesh.faces.push([0, 5, 4]);
+        // Back face (y=10)
+        mesh.faces.push([2, 3, 7]);
+        mesh.faces.push([2, 7, 6]);
+        // Left face (x=0)
+        mesh.faces.push([0, 4, 7]);
+        mesh.faces.push([0, 7, 3]);
+        // Right face (x=10)
+        mesh.faces.push([1, 2, 6]);
+        mesh.faces.push([1, 6, 5]);
+
+        // Create material zones
+        // Bottom faces (indices 0, 1) - Blue "Base" material
+        let bottom_region = MeshRegion::from_faces("bottom", vec![0, 1]);
+        let bottom_zone = MaterialZone::new(bottom_region, "Base-Material")
+            .with_color(0, 0, 255)
+            .with_shore_hardness(80.0);
+
+        // Top faces (indices 2, 3) - Red "Top" material
+        let top_region = MeshRegion::from_faces("top", vec![2, 3]);
+        let top_zone = MaterialZone::new(top_region, "Top-Material")
+            .with_color(255, 0, 0)
+            .with_flexibility(0.5);
+
+        // Side faces (indices 4-11) - Green "Side" material
+        let side_region = MeshRegion::from_faces("sides", vec![4, 5, 6, 7, 8, 9, 10, 11]);
+        let side_zone = MaterialZone::new(side_region, "Side-Material")
+            .with_color(0, 255, 0)
+            .with_density(1.2);
+
+        let params = ThreeMfExportParams::with_materials(vec![bottom_zone, top_zone, side_zone]);
+
+        // Save to temp file
+        let file = NamedTempFile::with_suffix(".3mf").unwrap();
+        save_3mf_with_materials(&mesh, file.path(), &params).expect("should save 3MF with materials");
+
+        // Reload
+        let result = load_3mf_with_materials(file.path()).expect("should reload 3MF with materials");
+
+        // Verify mesh geometry
+        assert_eq!(result.mesh.vertex_count(), 8, "vertex count should match");
+        assert_eq!(result.mesh.face_count(), 12, "face count should match");
+
+        // Verify materials
+        assert_eq!(result.material_zones.len(), 3, "should have 3 material zones");
+
+        // Check material names and colors
+        let names: Vec<&str> = result.material_zones.iter().map(|z| z.material_name.as_str()).collect();
+        assert!(names.contains(&"Base-Material"));
+        assert!(names.contains(&"Top-Material"));
+        assert!(names.contains(&"Side-Material"));
+
+        // Verify triangle material assignments
+        assert_eq!(result.triangle_materials.len(), 12, "should have 12 triangle materials");
+
+        // Bottom faces should be material 0 (Base-Material)
+        assert_eq!(result.triangle_materials[0], Some(0));
+        assert_eq!(result.triangle_materials[1], Some(0));
+
+        // Top faces should be material 1 (Top-Material)
+        assert_eq!(result.triangle_materials[2], Some(1));
+        assert_eq!(result.triangle_materials[3], Some(1));
+
+        // Side faces should be material 2 (Side-Material)
+        for i in 4..12 {
+            assert_eq!(result.triangle_materials[i], Some(2), "face {} should have Side-Material", i);
+        }
+    }
+
+    #[test]
+    fn test_3mf_with_materials_color_roundtrip() {
+        use crate::region::{MaterialZone, MeshRegion};
+
+        // Create a simple triangle mesh
+        let mut mesh = Mesh::new();
+        mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+        mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+        mesh.vertices.push(Vertex::from_coords(5.0, 10.0, 0.0));
+        mesh.faces.push([0, 1, 2]);
+
+        // Create material with specific color
+        let region = MeshRegion::from_faces("colored", vec![0]);
+        let zone = MaterialZone::new(region, "Orange-TPU")
+            .with_color(255, 128, 0);
+
+        let params = ThreeMfExportParams::with_materials(vec![zone]);
+
+        // Save and reload
+        let file = NamedTempFile::with_suffix(".3mf").unwrap();
+        save_3mf_with_materials(&mesh, file.path(), &params).expect("should save");
+
+        let result = load_3mf_with_materials(file.path()).expect("should reload");
+
+        // Verify color is preserved
+        assert_eq!(result.material_zones.len(), 1);
+        let loaded_zone = &result.material_zones[0];
+        assert_eq!(loaded_zone.material_name, "Orange-TPU");
+        assert_eq!(loaded_zone.properties.color, Some((255, 128, 0)));
+    }
+
+    #[test]
+    fn test_3mf_without_materials_backward_compatible() {
+        // Create a simple mesh
+        let mut mesh = Mesh::new();
+        mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+        mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0));
+        mesh.vertices.push(Vertex::from_coords(5.0, 10.0, 0.0));
+        mesh.faces.push([0, 1, 2]);
+
+        // Save with empty params (no materials)
+        let params = ThreeMfExportParams::default();
+        let file = NamedTempFile::with_suffix(".3mf").unwrap();
+        save_3mf_with_materials(&mesh, file.path(), &params).expect("should save");
+
+        // Should be loadable with both functions
+        let basic_mesh = load_mesh(file.path()).expect("should load with basic function");
+        assert_eq!(basic_mesh.vertex_count(), 3);
+        assert_eq!(basic_mesh.face_count(), 1);
+
+        let result = load_3mf_with_materials(file.path()).expect("should load with materials function");
+        assert_eq!(result.mesh.vertex_count(), 3);
+        assert_eq!(result.mesh.face_count(), 1);
+        assert!(result.material_zones.is_empty(), "should have no materials");
+    }
+
+    #[test]
+    fn test_parse_hex_color() {
+        assert_eq!(parse_hex_color("#FF8000"), Some((255, 128, 0)));
+        assert_eq!(parse_hex_color("FF8000"), Some((255, 128, 0)));
+        assert_eq!(parse_hex_color("#000000"), Some((0, 0, 0)));
+        assert_eq!(parse_hex_color("#FFFFFF"), Some((255, 255, 255)));
+        assert_eq!(parse_hex_color("#abc"), None); // Too short
+        assert_eq!(parse_hex_color(""), None);
+    }
+
+    #[test]
+    fn test_escape_xml() {
+        assert_eq!(escape_xml("hello"), "hello");
+        assert_eq!(escape_xml("a & b"), "a &amp; b");
+        assert_eq!(escape_xml("<tag>"), "&lt;tag&gt;");
+        assert_eq!(escape_xml("\"quoted\""), "&quot;quoted&quot;");
+        assert_eq!(escape_xml("it's"), "it&apos;s");
+    }
+
+    #[test]
+    fn test_3mf_with_vertex_based_region() {
+        use crate::region::{MaterialZone, MeshRegion};
+
+        // Create a mesh with 2 triangles sharing vertices
+        let mut mesh = Mesh::new();
+        mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));  // 0
+        mesh.vertices.push(Vertex::from_coords(10.0, 0.0, 0.0)); // 1
+        mesh.vertices.push(Vertex::from_coords(5.0, 10.0, 0.0)); // 2
+        mesh.vertices.push(Vertex::from_coords(10.0, 10.0, 0.0)); // 3
+
+        mesh.faces.push([0, 1, 2]); // face 0: vertices 0, 1, 2
+        mesh.faces.push([1, 3, 2]); // face 1: vertices 1, 3, 2
+
+        // Create a region using vertices (not faces)
+        // Only face 0 has ALL its vertices in the region
+        let region = MeshRegion::from_vertices("left-triangle", vec![0, 1, 2]);
+        let zone = MaterialZone::new(region, "Left-Material")
+            .with_color(255, 0, 0);
+
+        let params = ThreeMfExportParams::with_materials(vec![zone]);
+
+        // Save and reload
+        let file = NamedTempFile::with_suffix(".3mf").unwrap();
+        save_3mf_with_materials(&mesh, file.path(), &params).expect("should save");
+
+        let result = load_3mf_with_materials(file.path()).expect("should reload");
+
+        // Face 0 should have material 0, face 1 should have default (0) since only face-based regions are loaded
+        assert_eq!(result.triangle_materials[0], Some(0));
+        // Face 1 will have material 0 as default since it's not in the region but defaults to first material
+        assert_eq!(result.triangle_materials[1], Some(0));
     }
 }
