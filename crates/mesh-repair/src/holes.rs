@@ -2,6 +2,7 @@
 
 use hashbrown::{HashMap, HashSet};
 use nalgebra::{Point3, Vector3};
+use rayon::prelude::*;
 use tracing::{debug, info, warn};
 
 use crate::adjacency::MeshAdjacency;
@@ -59,14 +60,19 @@ pub fn detect_holes(_mesh: &Mesh, adjacency: &MeshAdjacency) -> Vec<BoundaryLoop
             loop_vertices.push(current);
 
             // Find next vertex in loop (not the one we came from)
-            let neighbors = edge_neighbors.get(&current).map(|v| v.as_slice()).unwrap_or(&[]);
+            let neighbors = edge_neighbors
+                .get(&current)
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
 
             let next = neighbors
                 .iter()
                 .find(|&&n| Some(n) != prev && !visited_vertices.contains(&n))
                 .or_else(|| {
                     // If we're closing the loop, allow going back to start
-                    neighbors.iter().find(|&&n| n == start && loop_vertices.len() > 2)
+                    neighbors
+                        .iter()
+                        .find(|&&n| n == start && loop_vertices.len() > 2)
                 });
 
             match next {
@@ -105,10 +111,7 @@ pub fn detect_holes(_mesh: &Mesh, adjacency: &MeshAdjacency) -> Vec<BoundaryLoop
 /// Fill a hole using ear clipping triangulation.
 ///
 /// Returns the new triangles to add to the mesh.
-pub fn fill_hole_ear_clipping(
-    mesh: &Mesh,
-    boundary: &BoundaryLoop,
-) -> Vec<[u32; 3]> {
+pub fn fill_hole_ear_clipping(mesh: &Mesh, boundary: &BoundaryLoop) -> Vec<[u32; 3]> {
     let n = boundary.vertices.len();
     if n < 3 {
         return Vec::new();
@@ -280,12 +283,7 @@ fn point_in_triangle_2d(
     point_in_triangle_2d_impl(p2, a2, b2, c2)
 }
 
-fn point_in_triangle_2d_impl(
-    p: (f64, f64),
-    a: (f64, f64),
-    b: (f64, f64),
-    c: (f64, f64),
-) -> bool {
+fn point_in_triangle_2d_impl(p: (f64, f64), a: (f64, f64), b: (f64, f64), c: (f64, f64)) -> bool {
     let sign = |p1: (f64, f64), p2: (f64, f64), p3: (f64, f64)| -> f64 {
         (p1.0 - p3.0) * (p2.1 - p3.1) - (p2.0 - p3.0) * (p1.1 - p3.1)
     };
@@ -310,24 +308,40 @@ pub fn fill_holes(mesh: &mut Mesh) -> MeshResult<usize> {
 /// Fill all holes in the mesh that are below the maximum edge count.
 ///
 /// Returns the number of holes filled.
+///
+/// Uses parallel processing via rayon - each hole is filled independently,
+/// then all triangles are merged into the mesh.
 pub fn fill_holes_with_max_edges(mesh: &mut Mesh, max_hole_edges: usize) -> MeshResult<usize> {
     let adjacency = MeshAdjacency::build(&mesh.faces);
     let holes = detect_holes(mesh, &adjacency);
 
-    let mut filled_count = 0;
+    // Partition holes into fillable and too-large
+    let (fillable, skipped): (Vec<_>, Vec<_>) = holes
+        .into_iter()
+        .partition(|hole| hole.edge_count() <= max_hole_edges);
 
-    for hole in &holes {
-        if hole.edge_count() <= max_hole_edges {
-            let new_triangles = fill_hole_ear_clipping(mesh, hole);
-            mesh.faces.extend(new_triangles);
-            filled_count += 1;
-        } else {
-            warn!(
-                "Skipping large hole with {} edges (max: {})",
-                hole.edge_count(),
-                max_hole_edges
-            );
-        }
+    // Log skipped holes
+    for hole in &skipped {
+        warn!(
+            "Skipping large hole with {} edges (max: {})",
+            hole.edge_count(),
+            max_hole_edges
+        );
+    }
+
+    // Fill holes in parallel - each hole is independent
+    // The fill_hole_ear_clipping function only reads from mesh.vertices (immutable)
+    // and produces new triangles without modifying the mesh
+    let all_new_triangles: Vec<Vec<[u32; 3]>> = fillable
+        .par_iter()
+        .map(|hole| fill_hole_ear_clipping(mesh, hole))
+        .collect();
+
+    let filled_count = all_new_triangles.len();
+
+    // Merge all new triangles into the mesh (sequential, but fast)
+    for triangles in all_new_triangles {
+        mesh.faces.extend(triangles);
     }
 
     if filled_count > 0 {

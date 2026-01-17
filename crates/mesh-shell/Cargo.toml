@@ -9,10 +9,12 @@ keywords = ["mesh", "3d", "shell", "offset", "sdf"]
 categories = ["graphics", "algorithms"]
 
 [dependencies]
-mesh-repair = { version = "0.1", path = "../mesh-repair" }
+mesh-repair = { version = "0.2", path = "../mesh-repair" }
+mesh-gpu = { version = "0.2", path = "../mesh-gpu", optional = true }
 nalgebra.workspace = true
 hashbrown.workspace = true
 thiserror.workspace = true
+miette.workspace = true
 tracing.workspace = true
 parry3d.workspace = true
 mesh_to_sdf.workspace = true
@@ -22,3 +24,13 @@ kiddo.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+criterion.workspace = true
+proptest.workspace = true
+
+[features]
+default = []
+gpu = ["mesh-gpu"]
+
+[[bench]]
+name = "shell_benchmarks"
+harness = false

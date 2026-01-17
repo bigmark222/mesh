@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://bigmark222.github.io/mesh/
+    about: Check the documentation for guides and API reference
+  - name: Discussions
+    url: https://github.com/bigmark222/mesh/discussions
+    about: Ask questions and discuss ideas

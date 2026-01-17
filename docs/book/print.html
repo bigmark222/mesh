@@ -1,0 +1,3924 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>mesh-repair Documentation</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex-56526106.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-6b2f994a.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">mesh-repair Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/bigmark222/mesh" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="mesh-repair"><a class="header" href="#mesh-repair">mesh-repair</a></h1>
+<p><strong>A pure Rust library for 3D mesh processing, repair, and shell generation.</strong></p>
+<p>mesh-repair is designed for custom-fit product manufacturing - think custom shoe insoles, helmet liners, protective equipment, and orthotics. It provides a complete pipeline from 3D scan to manufacturable shell.</p>
+<h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
+<ul>
+<li><strong>Mesh I/O</strong>: Load and save STL, OBJ, PLY, and 3MF files</li>
+<li><strong>Validation</strong>: Detect topology issues, holes, non-manifold edges</li>
+<li><strong>Repair</strong>: Fix winding order, weld vertices, fill holes, remove degenerates</li>
+<li><strong>Decimation</strong>: Reduce triangle count while preserving shape (QEM algorithm)</li>
+<li><strong>Remeshing</strong>: Isotropic remeshing for uniform triangle quality</li>
+<li><strong>Subdivision</strong>: Loop subdivision for smooth surfaces</li>
+<li><strong>Boolean Operations</strong>: Union, intersection, difference of meshes</li>
+<li><strong>Shell Generation</strong>: Create hollow shells with uniform wall thickness</li>
+<li><strong>Pipeline API</strong>: Chain operations fluently</li>
+</ul>
+<h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load a 3D scan
+    let mesh = load_mesh("foot_scan.stl")?;
+
+    // Process it through a repair pipeline
+    let result = Pipeline::new(mesh)
+        .validate()
+        .weld_vertices(1e-6)
+        .fill_holes()
+        .decimate_to_ratio(0.5)
+        .finish();
+
+    println!("Processed mesh: {} vertices, {} faces",
+        result.mesh.vertex_count(),
+        result.mesh.face_count());
+
+    Ok(())
+}</code></pre>
+<h2 id="who-is-this-for"><a class="header" href="#who-is-this-for">Who Is This For?</a></h2>
+<p>This library is for <strong>Rust developers building custom-fit product applications</strong>:</p>
+<ul>
+<li>3D scanning app backends</li>
+<li>Mass customization platforms</li>
+<li>Medical device software</li>
+<li>Protective equipment manufacturers</li>
+<li>Anyone processing 3D scan data programmatically</li>
+</ul>
+<h2 id="what-this-library-is-not"><a class="header" href="#what-this-library-is-not">What This Library Is NOT</a></h2>
+<ul>
+<li><strong>Not an application</strong> - No REST API, no web server, no GUI</li>
+<li><strong>Not a service</strong> - You build the service, this is the engine</li>
+<li><strong>Not multi-language</strong> - Rust only (use the CLI for other languages)</li>
+</ul>
+<h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
+<ol>
+<li><a href="#installation">Installation</a> - Add to your project</li>
+<li><a href="#quick-start">Quick Start</a> - Your first mesh processing</li>
+<li><a href="#basic-concepts">Basic Concepts</a> - Understanding meshes</li>
+</ol>
+<h2 id="crates"><a class="header" href="#crates">Crates</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Crate</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>mesh-repair</code></td><td>Core mesh processing library</td></tr>
+<tr><td><code>mesh-shell</code></td><td>Shell generation for hollow parts</td></tr>
+<tr><td><code>mesh-cli</code></td><td>Command-line interface</td></tr>
+<tr><td><code>mesh-gpu</code></td><td>Optional GPU acceleration</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
+<p>mesh-repair is designed for production use:</p>
+<ul>
+<li><strong>Fast</strong>: Native Rust performance, SIMD-optimized where applicable</li>
+<li><strong>Memory efficient</strong>: ~40 bytes per triangle (vs 120+ in many libraries)</li>
+<li><strong>Parallel</strong>: Rayon-based parallelization for large meshes</li>
+<li><strong>GPU ready</strong>: Optional GPU acceleration for SDF operations</li>
+</ul>
+<p>See <a href="https://github.com/bigmark222/mesh/blob/main/BENCHMARKS.md">Benchmarks</a> for detailed performance data.</p>
+<h2 id="license"><a class="header" href="#license">License</a></h2>
+<p>Licensed under MIT OR Apache-2.0, at your option.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<ul>
+<li>Rust 1.70 or later</li>
+<li>Cargo (comes with Rust)</li>
+</ul>
+<h2 id="adding-to-your-project"><a class="header" href="#adding-to-your-project">Adding to Your Project</a></h2>
+<p>Add mesh-repair to your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+mesh-repair = "0.1"
+</code></pre>
+<p>For shell generation capabilities:</p>
+<pre><code class="language-toml">[dependencies]
+mesh-repair = "0.1"
+mesh-shell = "0.1"
+</code></pre>
+<h2 id="optional-features"><a class="header" href="#optional-features">Optional Features</a></h2>
+<h3 id="gpu-acceleration"><a class="header" href="#gpu-acceleration">GPU Acceleration</a></h3>
+<p>For GPU-accelerated SDF computation (requires wgpu):</p>
+<pre><code class="language-toml">[dependencies]
+mesh-repair = "0.1"
+mesh-gpu = "0.1"
+</code></pre>
+<p>GPU acceleration provides 3-68x speedup for SDF operations on supported hardware.</p>
+<h3 id="pipeline-configuration"><a class="header" href="#pipeline-configuration">Pipeline Configuration</a></h3>
+<p>For YAML/JSON pipeline configuration support:</p>
+<pre><code class="language-toml">[dependencies]
+mesh-repair = { version = "0.1", features = ["pipeline-config"] }
+</code></pre>
+<h2 id="building-from-source"><a class="header" href="#building-from-source">Building from Source</a></h2>
+<pre><code class="language-bash"># Clone the repository
+git clone https://github.com/bigmark222/mesh.git
+cd mesh
+
+# Build all crates
+cargo build --release
+
+# Run tests
+cargo test --workspace
+
+# Build documentation
+cargo doc --workspace --no-deps --open
+</code></pre>
+<h2 id="command-line-interface"><a class="header" href="#command-line-interface">Command-Line Interface</a></h2>
+<p>Install the CLI tool:</p>
+<pre><code class="language-bash">cargo install mesh-cli
+</code></pre>
+<p>Or build from source:</p>
+<pre><code class="language-bash">cd crates/mesh-cli
+cargo install --path .
+</code></pre>
+<p>Verify installation:</p>
+<pre><code class="language-bash">mesh-cli --version
+mesh-cli --help
+</code></pre>
+<h2 id="platform-support"><a class="header" href="#platform-support">Platform Support</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Platform</th><th>Status</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>Linux x86_64</td><td>Fully supported</td><td>Primary development platform</td></tr>
+<tr><td>macOS x86_64</td><td>Fully supported</td><td>Intel Macs</td></tr>
+<tr><td>macOS ARM64</td><td>Fully supported</td><td>Apple Silicon</td></tr>
+<tr><td>Windows x86_64</td><td>Fully supported</td><td>MSVC toolchain</td></tr>
+<tr><td>WebAssembly</td><td>Experimental</td><td>No GPU support</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="verifying-installation"><a class="header" href="#verifying-installation">Verifying Installation</a></h2>
+<p>Create a test file <code>src/main.rs</code>:</p>
+<pre><code class="language-rust">use mesh_repair::{Mesh, validate_mesh};
+
+fn main() {
+    let mesh = Mesh::new();
+    let report = validate_mesh(&amp;mesh);
+    println!("Empty mesh validation: {:?}", report);
+    println!("mesh-repair installed successfully!");
+}</code></pre>
+<p>Run it:</p>
+<pre><code class="language-bash">cargo run
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="#quick-start">Quick Start</a> - Process your first mesh</li>
+<li><a href="#basic-concepts">Basic Concepts</a> - Understand mesh fundamentals</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
+<p>This guide walks you through processing your first mesh with mesh-repair.</p>
+<h2 id="loading-a-mesh"><a class="header" href="#loading-a-mesh">Loading a Mesh</a></h2>
+<pre><code class="language-rust">use mesh_repair::load_mesh;
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load from any supported format
+    let mesh = load_mesh("model.stl")?;
+
+    println!("Loaded mesh:");
+    println!("  Vertices: {}", mesh.vertex_count());
+    println!("  Faces: {}", mesh.face_count());
+
+    Ok(())
+}</code></pre>
+<p>Supported formats:</p>
+<ul>
+<li><strong>STL</strong> (<code>.stl</code>) - Binary and ASCII</li>
+<li><strong>OBJ</strong> (<code>.obj</code>) - Wavefront OBJ</li>
+<li><strong>PLY</strong> (<code>.ply</code>) - Polygon File Format</li>
+<li><strong>3MF</strong> (<code>.3mf</code>) - 3D Manufacturing Format</li>
+</ul>
+<h2 id="validating-a-mesh"><a class="header" href="#validating-a-mesh">Validating a Mesh</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("model.stl")?;
+    let report = validate_mesh(&amp;mesh);
+
+    println!("Validation Report:");
+    println!("  Manifold: {}", report.is_manifold);
+    println!("  Watertight: {}", report.is_watertight);
+    println!("  Boundary edges: {}", report.boundary_edge_count);
+    println!("  Components: {}", report.component_count);
+
+    if report.is_printable() {
+        println!("Mesh is ready for 3D printing!");
+    }
+
+    Ok(())
+}</code></pre>
+<h2 id="basic-repair"><a class="header" href="#basic-repair">Basic Repair</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, weld_vertices, fill_holes, fix_winding_order};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut mesh = load_mesh("broken_model.stl")?;
+
+    // Weld duplicate vertices (tolerance in model units)
+    weld_vertices(&amp;mut mesh, 1e-6);
+
+    // Fill any holes
+    fill_holes(&amp;mut mesh)?;
+
+    // Fix inconsistent face orientation
+    fix_winding_order(&amp;mut mesh)?;
+
+    // Save the repaired mesh
+    save_mesh(&amp;mesh, "repaired_model.stl")?;
+
+    println!("Mesh repaired and saved!");
+    Ok(())
+}</code></pre>
+<h2 id="using-the-pipeline-api"><a class="header" href="#using-the-pipeline-api">Using the Pipeline API</a></h2>
+<p>The Pipeline API provides a fluent interface for chaining operations:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("scan.stl")?;
+
+    let result = Pipeline::new(mesh)
+        .validate()                      // Check initial state
+        .weld_vertices(1e-6)             // Merge duplicate vertices
+        .fill_holes()                    // Close any gaps
+        .remove_small_components(100)    // Remove noise
+        .decimate_to_ratio(0.5)          // Reduce to 50% triangles
+        .finish();
+
+    println!("Pipeline completed in {} stages", result.stages_executed);
+    println!("Final mesh: {} faces", result.mesh.face_count());
+
+    save_mesh(&amp;result.mesh, "processed.stl")?;
+    Ok(())
+}</code></pre>
+<h2 id="decimation-simplification"><a class="header" href="#decimation-simplification">Decimation (Simplification)</a></h2>
+<p>Reduce triangle count while preserving shape:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, decimate_mesh, DecimateParams};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("high_poly.stl")?;
+    println!("Original: {} faces", mesh.face_count());
+
+    // Reduce to 10,000 triangles
+    let params = DecimateParams::with_target_triangles(10_000);
+    let result = decimate_mesh(&amp;mesh, &amp;params);
+
+    println!("Decimated: {} faces", result.mesh.face_count());
+    Ok(())
+}</code></pre>
+<h2 id="shell-generation"><a class="header" href="#shell-generation">Shell Generation</a></h2>
+<p>Create hollow shells for manufacturing:</p>
+<pre><code class="language-rust">use mesh_repair::load_mesh;
+use mesh_shell::{generate_shell, ShellParams};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("solid_part.stl")?;
+
+    let params = ShellParams {
+        wall_thickness_mm: 2.0,
+        ..Default::default()
+    };
+
+    let shell = generate_shell(&amp;mesh, &amp;params)?;
+
+    println!("Generated shell with {} faces", shell.face_count());
+    Ok(())
+}</code></pre>
+<h2 id="command-line-usage"><a class="header" href="#command-line-usage">Command-Line Usage</a></h2>
+<p>Process meshes without writing code:</p>
+<pre><code class="language-bash"># Validate a mesh
+mesh-cli validate model.stl
+
+# Repair a mesh
+mesh-cli repair input.stl -o output.stl
+
+# Decimate to 50% triangles
+mesh-cli decimate input.stl -o output.stl --ratio 0.5
+
+# Convert between formats
+mesh-cli convert model.stl model.obj
+
+# Generate a shell
+mesh-cli shell solid.stl -o hollow.stl --thickness 2.0
+</code></pre>
+<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<ul>
+<li><a href="#basic-concepts">Basic Concepts</a> - Understand mesh fundamentals</li>
+<li><a href="#loading-and-saving-meshes">User Guide</a> - Detailed operation guides</li>
+<li><a href="#example-gallery">Examples</a> - Real-world examples</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="basic-concepts"><a class="header" href="#basic-concepts">Basic Concepts</a></h1>
+<p>Understanding these fundamental concepts will help you work effectively with mesh-repair.</p>
+<h2 id="what-is-a-triangle-mesh"><a class="header" href="#what-is-a-triangle-mesh">What Is a Triangle Mesh?</a></h2>
+<p>A triangle mesh is a 3D surface represented as:</p>
+<ul>
+<li><strong>Vertices</strong>: Points in 3D space (x, y, z coordinates)</li>
+<li><strong>Faces</strong>: Triangles connecting three vertices each</li>
+</ul>
+<pre><code>    v2
+    /\
+   /  \
+  /    \
+ /______\
+v0      v1
+</code></pre>
+<p>mesh-repair uses an indexed representation:</p>
+<ul>
+<li>Vertices stored in a list: <code>[v0, v1, v2, v3, ...]</code></li>
+<li>Faces reference vertices by index: <code>[0, 1, 2]</code> means “triangle using v0, v1, v2”</li>
+</ul>
+<pre><code class="language-rust">use mesh_repair::{Mesh, Vertex};
+
+let mut mesh = Mesh::new();
+
+// Add vertices
+mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+mesh.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+mesh.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+
+// Add a face (indices into vertex list)
+mesh.faces.push([0, 1, 2]);</code></pre>
+<h2 id="mesh-properties"><a class="header" href="#mesh-properties">Mesh Properties</a></h2>
+<h3 id="manifold"><a class="header" href="#manifold">Manifold</a></h3>
+<p>A <strong>manifold</strong> mesh has well-defined inside/outside:</p>
+<ul>
+<li>Every edge is shared by exactly 1 or 2 faces</li>
+<li>No edge is shared by 3+ faces (non-manifold)</li>
+</ul>
+<pre><code>Manifold edge (2 faces):     Non-manifold edge (3+ faces):
+    ┌───┐                        ┌───┐
+    │   │                        │ / │
+────┼───┼────                ────┼───┼────
+    │   │                        │ \ │
+    └───┘                        └───┘
+</code></pre>
+<h3 id="watertight"><a class="header" href="#watertight">Watertight</a></h3>
+<p>A <strong>watertight</strong> mesh is completely closed:</p>
+<ul>
+<li>No boundary edges (edges with only 1 face)</li>
+<li>No holes in the surface</li>
+</ul>
+<p>Watertight meshes have a well-defined volume and are required for most 3D printing.</p>
+<h3 id="winding-order"><a class="header" href="#winding-order">Winding Order</a></h3>
+<p><strong>Winding order</strong> determines which side of a face is “outside”:</p>
+<ul>
+<li><strong>Counter-clockwise (CCW)</strong>: Standard convention, normal points toward viewer</li>
+<li><strong>Clockwise (CW)</strong>: Normal points away from viewer</li>
+</ul>
+<pre><code>Counter-clockwise (outside up):    Clockwise (outside down):
+      v2                                 v2
+      /\                                 /\
+     /  \  → Normal UP                  /  \  → Normal DOWN
+    /    \                             /    \
+   v0────v1                           v1────v0
+</code></pre>
+<p>Consistent winding order is critical for:</p>
+<ul>
+<li>Correct rendering (backface culling)</li>
+<li>Volume calculations</li>
+<li>Shell generation (inside vs outside)</li>
+</ul>
+<h2 id="common-mesh-issues"><a class="header" href="#common-mesh-issues">Common Mesh Issues</a></h2>
+<h3 id="duplicate-vertices"><a class="header" href="#duplicate-vertices">Duplicate Vertices</a></h3>
+<p>Multiple vertices at the same (or nearly same) position:</p>
+<pre><code>Before welding:        After welding:
+v0──v1  v2──v3        v0──v1──v2
+│    │  │    │   →    │       │
+v4──v5  v6──v7        v3──────v4
+(8 vertices)          (5 vertices)
+</code></pre>
+<p>Use <code>weld_vertices()</code> to merge duplicates.</p>
+<h3 id="holes-boundary-edges"><a class="header" href="#holes-boundary-edges">Holes (Boundary Edges)</a></h3>
+<p>Missing faces leave gaps in the surface:</p>
+<pre><code>    ┌───┬───┐
+    │   │   │
+    ├───┼───┤
+    │   │ ← Hole (missing face)
+    └───┘
+</code></pre>
+<p>Use <code>fill_holes()</code> to close gaps.</p>
+<h3 id="degenerate-triangles"><a class="header" href="#degenerate-triangles">Degenerate Triangles</a></h3>
+<p>Triangles with zero or near-zero area:</p>
+<ul>
+<li>Collinear vertices (all three on a line)</li>
+<li>Duplicate vertices in the same face</li>
+</ul>
+<pre><code>Degenerate (collinear):    Degenerate (duplicate):
+v0──────v1──────v2         v0 = v1
+     (area ≈ 0)                  \
+                                  v2
+</code></pre>
+<p>Use <code>remove_degenerate_triangles()</code> to clean these.</p>
+<h3 id="inconsistent-winding"><a class="header" href="#inconsistent-winding">Inconsistent Winding</a></h3>
+<p>Adjacent faces with opposite winding orders:</p>
+<pre><code>Normal UP ↑    Normal DOWN ↓
+   ┌───┬───┐
+   │ ↑ │ ↓ │  ← Inconsistent!
+   └───┴───┘
+</code></pre>
+<p>Use <code>fix_winding_order()</code> to make winding consistent.</p>
+<h2 id="mesh-quality-metrics"><a class="header" href="#mesh-quality-metrics">Mesh Quality Metrics</a></h2>
+<h3 id="surface-area"><a class="header" href="#surface-area">Surface Area</a></h3>
+<p>Total area of all triangles. Used for:</p>
+<ul>
+<li>Material estimation</li>
+<li>Coating calculations</li>
+<li>Quality validation</li>
+</ul>
+<pre><code class="language-rust">let area = mesh.surface_area();
+println!("Surface area: {} mm²", area);</code></pre>
+<h3 id="volume"><a class="header" href="#volume">Volume</a></h3>
+<p>Enclosed volume (only valid for watertight meshes):</p>
+<pre><code class="language-rust">let volume = mesh.volume();
+println!("Volume: {} mm³", volume.abs());</code></pre>
+<p>Note: Volume can be negative if winding is inverted.</p>
+<h3 id="bounding-box"><a class="header" href="#bounding-box">Bounding Box</a></h3>
+<p>Axis-aligned bounding box containing the mesh:</p>
+<pre><code class="language-rust">if let Some((min, max)) = mesh.bounds() {
+    println!("Bounds: ({}, {}, {}) to ({}, {}, {})",
+        min.x, min.y, min.z,
+        max.x, max.y, max.z);
+}</code></pre>
+<h2 id="validation-report"><a class="header" href="#validation-report">Validation Report</a></h2>
+<p>The <code>validate_mesh()</code> function returns a comprehensive report:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+let mesh = load_mesh("model.stl")?;
+let report = validate_mesh(&amp;mesh);
+
+// Topology checks
+println!("Is manifold: {}", report.is_manifold);
+println!("Is watertight: {}", report.is_watertight);
+println!("Boundary edges: {}", report.boundary_edge_count);
+println!("Non-manifold edges: {}", report.non_manifold_edge_count);
+
+// Geometry stats
+println!("Components: {}", report.component_count);
+println!("Degenerate faces: {}", report.degenerate_face_count);
+
+// 3D printing readiness
+if report.is_printable() {
+    println!("Ready for 3D printing!");
+}</code></pre>
+<h2 id="coordinate-systems"><a class="header" href="#coordinate-systems">Coordinate Systems</a></h2>
+<p>mesh-repair uses right-handed coordinates:</p>
+<ul>
+<li><strong>X</strong>: Right</li>
+<li><strong>Y</strong>: Up (or forward, depending on source)</li>
+<li><strong>Z</strong>: Forward (or up, depending on source)</li>
+</ul>
+<p>Units are not specified - use whatever your source data uses (usually millimeters for 3D printing).</p>
+<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
+<ul>
+<li><a href="#loading-and-saving-meshes">Loading and Saving Meshes</a> - File format details</li>
+<li><a href="#mesh-validation">Mesh Validation</a> - Detailed validation guide</li>
+<li><a href="#repair-operations">Repair Operations</a> - Fixing mesh issues</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="loading-and-saving-meshes"><a class="header" href="#loading-and-saving-meshes">Loading and Saving Meshes</a></h1>
+<p>mesh-repair supports multiple 3D file formats for input and output.</p>
+<h2 id="supported-formats"><a class="header" href="#supported-formats">Supported Formats</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Format</th><th>Extension</th><th>Read</th><th>Write</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>STL</td><td><code>.stl</code></td><td>Binary &amp; ASCII</td><td>Binary</td><td>Industry standard for 3D printing</td></tr>
+<tr><td>OBJ</td><td><code>.obj</code></td><td>Yes</td><td>Yes</td><td>Wavefront format, widely supported</td></tr>
+<tr><td>PLY</td><td><code>.ply</code></td><td>ASCII</td><td>ASCII</td><td>Stanford format, good for scans</td></tr>
+<tr><td>3MF</td><td><code>.3mf</code></td><td>Yes</td><td>Yes</td><td>Modern 3D printing format</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="loading-meshes"><a class="header" href="#loading-meshes">Loading Meshes</a></h2>
+<h3 id="basic-loading"><a class="header" href="#basic-loading">Basic Loading</a></h3>
+<pre><code class="language-rust">use mesh_repair::load_mesh;
+
+// Format is auto-detected from extension
+let mesh = load_mesh("model.stl")?;
+let mesh = load_mesh("model.obj")?;
+let mesh = load_mesh("model.ply")?;
+let mesh = load_mesh("model.3mf")?;</code></pre>
+<h3 id="loading-with-path"><a class="header" href="#loading-with-path">Loading with Path</a></h3>
+<pre><code class="language-rust">use mesh_repair::load_mesh;
+use std::path::Path;
+
+let path = Path::new("/path/to/model.stl");
+let mesh = load_mesh(path)?;</code></pre>
+<h3 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, MeshError};
+
+match load_mesh("model.stl") {
+    Ok(mesh) =&gt; println!("Loaded {} faces", mesh.face_count()),
+    Err(e) =&gt; match e {
+        MeshError::IoError(io_err) =&gt; println!("File error: {}", io_err),
+        MeshError::ParseError { path, message } =&gt; {
+            println!("Parse error in {}: {}", path, message);
+        }
+        _ =&gt; println!("Error: {}", e),
+    }
+}</code></pre>
+<h2 id="saving-meshes"><a class="header" href="#saving-meshes">Saving Meshes</a></h2>
+<h3 id="basic-saving"><a class="header" href="#basic-saving">Basic Saving</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh};
+
+let mesh = load_mesh("input.stl")?;
+save_mesh(&amp;mesh, "output.stl")?;  // Format from extension
+save_mesh(&amp;mesh, "output.obj")?;  // Convert to OBJ
+save_mesh(&amp;mesh, "output.3mf")?;  // Convert to 3MF</code></pre>
+<h3 id="format-conversion"><a class="header" href="#format-conversion">Format Conversion</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh};
+
+// STL to OBJ
+let mesh = load_mesh("model.stl")?;
+save_mesh(&amp;mesh, "model.obj")?;
+
+// OBJ to 3MF
+let mesh = load_mesh("model.obj")?;
+save_mesh(&amp;mesh, "model.3mf")?;</code></pre>
+<h2 id="format-details"><a class="header" href="#format-details">Format Details</a></h2>
+<h3 id="stl-stereolithography"><a class="header" href="#stl-stereolithography">STL (Stereolithography)</a></h3>
+<p>The most common format for 3D printing.</p>
+<p><strong>Binary STL</strong> (default for saving):</p>
+<ul>
+<li>Compact file size</li>
+<li>Fast to read/write</li>
+<li>No vertex sharing (triangle soup)</li>
+</ul>
+<p><strong>ASCII STL</strong>:</p>
+<ul>
+<li>Human-readable</li>
+<li>Larger file size</li>
+<li>Useful for debugging</li>
+</ul>
+<pre><code>solid model
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 0.5 1 0
+    endloop
+  endfacet
+endsolid model
+</code></pre>
+<h3 id="obj-wavefront"><a class="header" href="#obj-wavefront">OBJ (Wavefront)</a></h3>
+<p>Widely supported format with vertex sharing.</p>
+<pre><code># Wavefront OBJ
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 0.5 1.0 0.0
+f 1 2 3
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Vertex sharing (smaller files)</li>
+<li>Optional normals (<code>vn</code>)</li>
+<li>Optional texture coordinates (<code>vt</code>)</li>
+<li>Material references (<code>.mtl</code>)</li>
+</ul>
+<h3 id="ply-polygon-file-format"><a class="header" href="#ply-polygon-file-format">PLY (Polygon File Format)</a></h3>
+<p>Stanford format, common for 3D scans.</p>
+<pre><code>ply
+format ascii 1.0
+element vertex 3
+property float x
+property float y
+property float z
+element face 1
+property list uchar int vertex_indices
+end_header
+0 0 0
+1 0 0
+0.5 1 0
+3 0 1 2
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Vertex colors</li>
+<li>Per-vertex properties</li>
+<li>Good for point clouds</li>
+</ul>
+<h3 id="3mf-3d-manufacturing-format"><a class="header" href="#3mf-3d-manufacturing-format">3MF (3D Manufacturing Format)</a></h3>
+<p>Modern XML-based format designed for 3D printing.</p>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Built-in compression (ZIP)</li>
+<li>Units specification (default: millimeters)</li>
+<li>Multiple objects per file</li>
+<li>Material and color support</li>
+<li>Metadata</li>
+</ul>
+<h2 id="memory-considerations"><a class="header" href="#memory-considerations">Memory Considerations</a></h2>
+<h3 id="large-files"><a class="header" href="#large-files">Large Files</a></h3>
+<p>For very large meshes, memory usage is approximately:</p>
+<ul>
+<li>~24 bytes per vertex</li>
+<li>~12 bytes per face</li>
+</ul>
+<p>A 1 million triangle mesh uses ~36 MB.</p>
+<h3 id="streaming-future"><a class="header" href="#streaming-future">Streaming (Future)</a></h3>
+<p>For extremely large files, consider:</p>
+<ol>
+<li>Decimating after loading to reduce memory</li>
+<li>Processing in chunks (not yet supported)</li>
+</ol>
+<h2 id="cli-usage"><a class="header" href="#cli-usage">CLI Usage</a></h2>
+<pre><code class="language-bash"># Convert formats
+mesh-cli convert input.stl output.obj
+
+# Validate file format
+mesh-cli validate model.stl
+
+# Get file info
+mesh-cli info model.stl
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Use binary STL</strong> for 3D printing output (smaller, faster)</li>
+<li><strong>Use OBJ</strong> when vertex sharing matters</li>
+<li><strong>Use 3MF</strong> for modern slicers with metadata needs</li>
+<li><strong>Validate after loading</strong> to catch format issues early</li>
+</ol>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+let mesh = load_mesh("model.stl")?;
+let report = validate_mesh(&amp;mesh);
+
+if !report.is_valid() {
+    eprintln!("Warning: Mesh has issues after loading");
+}</code></pre>
+<h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
+<ul>
+<li><a href="#mesh-validation">Mesh Validation</a> - Check mesh quality</li>
+<li><a href="#repair-operations">Repair Operations</a> - Fix common issues</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="mesh-validation"><a class="header" href="#mesh-validation">Mesh Validation</a></h1>
+<p>Validation detects issues that could cause problems in downstream processing or manufacturing.</p>
+<h2 id="quick-validation"><a class="header" href="#quick-validation">Quick Validation</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+let mesh = load_mesh("model.stl")?;
+let report = validate_mesh(&amp;mesh);
+
+println!("Valid: {}", report.is_valid());
+println!("Printable: {}", report.is_printable());</code></pre>
+<h2 id="validation-report-1"><a class="header" href="#validation-report-1">Validation Report</a></h2>
+<p>The <code>MeshReport</code> struct contains comprehensive mesh analysis:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+let mesh = load_mesh("model.stl")?;
+let report = validate_mesh(&amp;mesh);
+
+// Basic counts
+println!("Vertices: {}", report.vertex_count);
+println!("Faces: {}", report.face_count);
+println!("Components: {}", report.component_count);
+
+// Topology
+println!("Manifold: {}", report.is_manifold);
+println!("Watertight: {}", report.is_watertight);
+println!("Boundary edges: {}", report.boundary_edge_count);
+println!("Non-manifold edges: {}", report.non_manifold_edge_count);
+
+// Quality
+println!("Degenerate faces: {}", report.degenerate_face_count);</code></pre>
+<h2 id="what-gets-checked"><a class="header" href="#what-gets-checked">What Gets Checked</a></h2>
+<h3 id="manifold-topology"><a class="header" href="#manifold-topology">Manifold Topology</a></h3>
+<p>A manifold mesh has well-defined inside/outside:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Check</th><th>Description</th><th>Impact</th></tr>
+</thead>
+<tbody>
+<tr><td>Edge valence</td><td>Each edge shared by 1-2 faces</td><td>Non-manifold edges cause slicing errors</td></tr>
+<tr><td>Vertex valence</td><td>Vertices form proper fan</td><td>Non-manifold vertices cause rendering issues</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-rust">if !report.is_manifold {
+    println!("Non-manifold edges: {}", report.non_manifold_edge_count);
+    // May need manual repair or mesh simplification
+}</code></pre>
+<h3 id="watertightness"><a class="header" href="#watertightness">Watertightness</a></h3>
+<p>A watertight mesh is completely closed:</p>
+<pre><code class="language-rust">if !report.is_watertight {
+    println!("Boundary edges: {}", report.boundary_edge_count);
+    // Use fill_holes() to close gaps
+}</code></pre>
+<h3 id="connected-components"><a class="header" href="#connected-components">Connected Components</a></h3>
+<p>Separate pieces in the mesh:</p>
+<pre><code class="language-rust">if report.component_count &gt; 1 {
+    println!("Mesh has {} separate pieces", report.component_count);
+    // May want to keep_largest_component() or process separately
+}</code></pre>
+<h3 id="degenerate-faces"><a class="header" href="#degenerate-faces">Degenerate Faces</a></h3>
+<p>Zero-area or near-zero-area triangles:</p>
+<pre><code class="language-rust">if report.degenerate_face_count &gt; 0 {
+    println!("Degenerate faces: {}", report.degenerate_face_count);
+    // Use remove_degenerate_triangles() to clean
+}</code></pre>
+<h2 id="printability-check"><a class="header" href="#printability-check">Printability Check</a></h2>
+<p>The <code>is_printable()</code> method checks 3D printing readiness:</p>
+<pre><code class="language-rust">if report.is_printable() {
+    println!("Ready for 3D printing!");
+} else {
+    println!("Needs repair before printing:");
+    if !report.is_manifold {
+        println!("  - Fix non-manifold geometry");
+    }
+    if !report.is_watertight {
+        println!("  - Fill holes");
+    }
+    if report.degenerate_face_count &gt; 0 {
+        println!("  - Remove degenerate triangles");
+    }
+}</code></pre>
+<h2 id="component-analysis"><a class="header" href="#component-analysis">Component Analysis</a></h2>
+<p>Analyze individual connected components:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, find_connected_components};
+
+let mesh = load_mesh("model.stl")?;
+let analysis = find_connected_components(&amp;mesh);
+
+for (i, component) in analysis.components.iter().enumerate() {
+    println!("Component {}: {} faces", i, component.face_count);
+}</code></pre>
+<h2 id="geometry-metrics"><a class="header" href="#geometry-metrics">Geometry Metrics</a></h2>
+<p>Beyond topology, check geometric properties:</p>
+<pre><code class="language-rust">let mesh = load_mesh("model.stl")?;
+
+// Bounding box
+if let Some((min, max)) = mesh.bounds() {
+    let size_x = max.x - min.x;
+    let size_y = max.y - min.y;
+    let size_z = max.z - min.z;
+    println!("Size: {:.2} x {:.2} x {:.2}", size_x, size_y, size_z);
+}
+
+// Surface area
+println!("Surface area: {:.2} mm²", mesh.surface_area());
+
+// Volume (only meaningful for watertight meshes)
+let volume = mesh.volume();
+println!("Volume: {:.2} mm³", volume.abs());</code></pre>
+<h2 id="validation-workflow"><a class="header" href="#validation-workflow">Validation Workflow</a></h2>
+<p>Recommended validation workflow:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh, Pipeline};
+
+fn process_mesh(path: &amp;str) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load
+    let mesh = load_mesh(path)?;
+
+    // Initial validation
+    let report = validate_mesh(&amp;mesh);
+    println!("Initial state:");
+    println!("  Manifold: {}", report.is_manifold);
+    println!("  Watertight: {}", report.is_watertight);
+
+    // Repair if needed
+    let result = Pipeline::new(mesh)
+        .validate()
+        .weld_vertices(1e-6)
+        .remove_degenerate_triangles(1e-10)
+        .fill_holes()
+        .finish();
+
+    // Final validation
+    let final_report = validate_mesh(&amp;result.mesh);
+    println!("\nAfter repair:");
+    println!("  Manifold: {}", final_report.is_manifold);
+    println!("  Watertight: {}", final_report.is_watertight);
+    println!("  Printable: {}", final_report.is_printable());
+
+    Ok(())
+}</code></pre>
+<h2 id="cli-validation"><a class="header" href="#cli-validation">CLI Validation</a></h2>
+<pre><code class="language-bash"># Basic validation
+mesh-cli validate model.stl
+
+# Verbose output
+mesh-cli validate model.stl --verbose
+
+# JSON output for scripting
+mesh-cli validate model.stl --json
+</code></pre>
+<h2 id="performance-1"><a class="header" href="#performance-1">Performance</a></h2>
+<p>Validation is fast:</p>
+<ul>
+<li>O(V + F) complexity</li>
+<li>~256M elements/second on modern hardware</li>
+<li>Can validate 1M triangle mesh in ~4ms</li>
+</ul>
+<h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
+<ul>
+<li><a href="#repair-operations">Repair Operations</a> - Fix detected issues</li>
+<li><a href="#decimation">Decimation</a> - Reduce complexity</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="repair-operations"><a class="header" href="#repair-operations">Repair Operations</a></h1>
+<p>mesh-repair provides tools to fix common mesh issues.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Function</th><th>Fixes</th></tr>
+</thead>
+<tbody>
+<tr><td>Weld vertices</td><td><code>weld_vertices()</code></td><td>Duplicate vertices</td></tr>
+<tr><td>Fill holes</td><td><code>fill_holes()</code></td><td>Boundary edges, gaps</td></tr>
+<tr><td>Fix winding</td><td><code>fix_winding_order()</code></td><td>Inconsistent normals</td></tr>
+<tr><td>Remove degenerates</td><td><code>remove_degenerate_triangles()</code></td><td>Zero-area faces</td></tr>
+<tr><td>Remove small components</td><td><code>remove_small_components()</code></td><td>Noise, debris</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="weld-vertices"><a class="header" href="#weld-vertices">Weld Vertices</a></h2>
+<p>Merge vertices that are within a tolerance distance:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, weld_vertices};
+
+let mut mesh = load_mesh("model.stl")?;
+let original = mesh.vertex_count();
+
+// Merge vertices within 1 micron (0.001mm)
+weld_vertices(&amp;mut mesh, 1e-3);
+
+let merged = original - mesh.vertex_count();
+println!("Merged {} duplicate vertices", merged);</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>After loading STL files (which don’t share vertices)</li>
+<li>When mesh has “cracks” between faces</li>
+<li>To reduce vertex count</li>
+</ul>
+<p><strong>Tolerance guidelines</strong>:</p>
+<ul>
+<li><code>1e-6</code>: Very tight, only exact duplicates</li>
+<li><code>1e-3</code>: 1 micron, good default for mm-scale models</li>
+<li><code>0.1</code>: Aggressive, may merge intentional geometry</li>
+</ul>
+<h2 id="fill-holes"><a class="header" href="#fill-holes">Fill Holes</a></h2>
+<p>Close gaps in the mesh surface:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, fill_holes, validate_mesh};
+
+let mut mesh = load_mesh("model.stl")?;
+
+let report = validate_mesh(&amp;mesh);
+println!("Boundary edges before: {}", report.boundary_edge_count);
+
+fill_holes(&amp;mut mesh)?;
+
+let report = validate_mesh(&amp;mesh);
+println!("Boundary edges after: {}", report.boundary_edge_count);</code></pre>
+<p><strong>How it works</strong>:</p>
+<ol>
+<li>Finds boundary edge loops</li>
+<li>Triangulates each hole</li>
+<li>Uses ear-clipping algorithm for clean triangulation</li>
+</ol>
+<p><strong>Limitations</strong>:</p>
+<ul>
+<li>Very large holes may produce poor triangulation</li>
+<li>Complex hole shapes may need manual intervention</li>
+<li>Cannot fill non-manifold boundaries</li>
+</ul>
+<h2 id="fix-winding-order"><a class="header" href="#fix-winding-order">Fix Winding Order</a></h2>
+<p>Make all face normals consistent:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, fix_winding_order};
+
+let mut mesh = load_mesh("model.stl")?;
+fix_winding_order(&amp;mut mesh)?;</code></pre>
+<p><strong>How it works</strong>:</p>
+<ol>
+<li>Picks a seed face</li>
+<li>Propagates orientation to neighbors</li>
+<li>Flips inconsistent faces</li>
+</ol>
+<p><strong>After fixing</strong>:</p>
+<ul>
+<li>All faces wind counter-clockwise when viewed from outside</li>
+<li>Volume calculation will be correct sign</li>
+<li>Shell generation will work correctly</li>
+</ul>
+<h2 id="remove-degenerate-triangles"><a class="header" href="#remove-degenerate-triangles">Remove Degenerate Triangles</a></h2>
+<p>Remove triangles with zero or near-zero area:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, remove_degenerate_triangles, validate_mesh};
+
+let mut mesh = load_mesh("model.stl")?;
+
+let report = validate_mesh(&amp;mesh);
+println!("Degenerate faces: {}", report.degenerate_face_count);
+
+// Remove triangles with area &lt; 1e-10
+remove_degenerate_triangles(&amp;mut mesh, 1e-10);</code></pre>
+<p><strong>Types of degenerates</strong>:</p>
+<ul>
+<li>Collinear vertices (all three on a line)</li>
+<li>Duplicate vertex indices in same face</li>
+<li>Very small triangles (below tolerance)</li>
+</ul>
+<h2 id="remove-small-components"><a class="header" href="#remove-small-components">Remove Small Components</a></h2>
+<p>Remove disconnected pieces below a face count threshold:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, remove_small_components, validate_mesh};
+
+let mut mesh = load_mesh("scan.stl")?;
+
+let report = validate_mesh(&amp;mesh);
+println!("Components: {}", report.component_count);
+
+// Remove components with fewer than 100 faces
+let removed = remove_small_components(&amp;mut mesh, 100);
+println!("Removed {} small components", removed);</code></pre>
+<p><strong>Use cases</strong>:</p>
+<ul>
+<li>Removing scan noise/artifacts</li>
+<li>Cleaning up boolean operation debris</li>
+<li>Isolating main geometry</li>
+</ul>
+<h2 id="keep-largest-component"><a class="header" href="#keep-largest-component">Keep Largest Component</a></h2>
+<p>Keep only the largest connected component:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, keep_largest_component};
+
+let mut mesh = load_mesh("scan.stl")?;
+keep_largest_component(&amp;mut mesh)?;
+
+// Now mesh contains only the largest piece</code></pre>
+<h2 id="combined-repair-pipeline"><a class="header" href="#combined-repair-pipeline">Combined Repair Pipeline</a></h2>
+<p>For typical repair workflow, use the Pipeline API:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline};
+
+let mesh = load_mesh("broken.stl")?;
+
+let result = Pipeline::new(mesh)
+    .weld_vertices(1e-6)              // 1. Merge duplicates
+    .remove_degenerate_triangles(1e-10) // 2. Clean degenerates
+    .fill_holes()                     // 3. Close holes
+    .fix_winding()                    // 4. Fix normals
+    .remove_small_components(50)      // 5. Remove noise
+    .validate()                       // 6. Final check
+    .finish();
+
+save_mesh(&amp;result.mesh, "repaired.stl")?;</code></pre>
+<h2 id="repair-parameters"><a class="header" href="#repair-parameters">Repair Parameters</a></h2>
+<p>For fine-grained control:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, repair_mesh, RepairParams};
+
+let mesh = load_mesh("model.stl")?;
+
+let params = RepairParams {
+    weld_tolerance: 1e-6,
+    fill_holes: true,
+    fix_winding: true,
+    remove_degenerates: true,
+    degenerate_threshold: 1e-10,
+    ..Default::default()
+};
+
+let repaired = repair_mesh(&amp;mesh, &amp;params)?;</code></pre>
+<h2 id="cli-repair"><a class="header" href="#cli-repair">CLI Repair</a></h2>
+<pre><code class="language-bash"># Auto-repair with defaults
+mesh-cli repair input.stl -o output.stl
+
+# Specific operations
+mesh-cli repair input.stl -o output.stl --weld --fill-holes
+
+# With custom tolerance
+mesh-cli repair input.stl -o output.stl --weld-tolerance 0.001
+</code></pre>
+<h2 id="repair-order-matters"><a class="header" href="#repair-order-matters">Repair Order Matters</a></h2>
+<p>Recommended order for best results:</p>
+<ol>
+<li><strong>Weld vertices</strong> - Creates proper connectivity</li>
+<li><strong>Remove degenerates</strong> - Cleans up zero-area faces</li>
+<li><strong>Fill holes</strong> - Needs valid connectivity first</li>
+<li><strong>Fix winding</strong> - Works better on closed mesh</li>
+<li><strong>Remove small components</strong> - Final cleanup</li>
+</ol>
+<h2 id="what-repair-cannot-fix"><a class="header" href="#what-repair-cannot-fix">What Repair Cannot Fix</a></h2>
+<p>Some issues require manual intervention:</p>
+<ul>
+<li>Self-intersecting geometry</li>
+<li>Heavily corrupted topology</li>
+<li>Missing large portions of mesh</li>
+<li>Inverted normals on entire mesh (use explicit flip)</li>
+</ul>
+<p>For self-intersections, see <a href="#boolean-operations">Boolean Operations</a> for mesh splitting.</p>
+<h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
+<ul>
+<li><a href="#decimation">Decimation</a> - Reduce triangle count</li>
+<li><a href="#remeshing">Remeshing</a> - Improve triangle quality</li>
+<li><a href="#pipeline-api">Pipeline API</a> - Chain operations</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="decimation"><a class="header" href="#decimation">Decimation</a></h1>
+<p>Decimation reduces triangle count while preserving shape. Essential for optimizing scan data.</p>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, decimate_mesh, DecimateParams};
+
+let mesh = load_mesh("high_poly.stl")?;
+println!("Original: {} faces", mesh.face_count());
+
+// Reduce to target triangle count
+let params = DecimateParams::with_target_triangles(10_000);
+let result = decimate_mesh(&amp;mesh, &amp;params);
+
+println!("Decimated: {} faces", result.mesh.face_count());</code></pre>
+<h2 id="target-methods"><a class="header" href="#target-methods">Target Methods</a></h2>
+<h3 id="target-triangle-count"><a class="header" href="#target-triangle-count">Target Triangle Count</a></h3>
+<p>Specify exact number of triangles:</p>
+<pre><code class="language-rust">let params = DecimateParams::with_target_triangles(5_000);
+let result = decimate_mesh(&amp;mesh, &amp;params);</code></pre>
+<h3 id="target-ratio"><a class="header" href="#target-ratio">Target Ratio</a></h3>
+<p>Specify fraction to keep:</p>
+<pre><code class="language-rust">// Keep 50% of triangles
+let params = DecimateParams::with_target_ratio(0.5);
+let result = decimate_mesh(&amp;mesh, &amp;params);
+
+// Keep 10% of triangles (90% reduction)
+let params = DecimateParams::with_target_ratio(0.1);
+let result = decimate_mesh(&amp;mesh, &amp;params);</code></pre>
+<h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
+<p>mesh-repair uses <strong>Quadric Error Metrics (QEM)</strong>:</p>
+<ol>
+<li>Computes error quadric for each vertex</li>
+<li>Evaluates cost of collapsing each edge</li>
+<li>Collapses lowest-cost edges first</li>
+<li>Repeats until target reached</li>
+</ol>
+<p><strong>Advantages</strong>:</p>
+<ul>
+<li>Preserves sharp features</li>
+<li>Minimizes geometric error</li>
+<li>O(F log F) complexity</li>
+</ul>
+<h2 id="decimation-result"><a class="header" href="#decimation-result">Decimation Result</a></h2>
+<pre><code class="language-rust">let result = decimate_mesh(&amp;mesh, &amp;params);
+
+println!("Final faces: {}", result.mesh.face_count());
+println!("Edges collapsed: {}", result.edges_collapsed);</code></pre>
+<h2 id="pipeline-integration"><a class="header" href="#pipeline-integration">Pipeline Integration</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline};
+
+let mesh = load_mesh("scan.stl")?;
+
+let result = Pipeline::new(mesh)
+    .weld_vertices(1e-6)
+    .decimate_to_ratio(0.5)  // Reduce by half
+    .finish();</code></pre>
+<h2 id="preserving-features"><a class="header" href="#preserving-features">Preserving Features</a></h2>
+<h3 id="boundary-preservation"><a class="header" href="#boundary-preservation">Boundary Preservation</a></h3>
+<p>Edges on mesh boundaries are preserved by default:</p>
+<pre><code class="language-rust">let params = DecimateParams {
+    preserve_boundaries: true,  // Default
+    ..DecimateParams::with_target_ratio(0.5)
+};</code></pre>
+<h3 id="quality-threshold"><a class="header" href="#quality-threshold">Quality Threshold</a></h3>
+<p>Prevent creating poor-quality triangles:</p>
+<pre><code class="language-rust">let params = DecimateParams {
+    min_quality: 0.1,  // Minimum triangle quality (0-1)
+    ..DecimateParams::with_target_ratio(0.5)
+};</code></pre>
+<h2 id="performance-2"><a class="header" href="#performance-2">Performance</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Mesh Size</th><th>50% Reduction</th><th>Throughput</th></tr>
+</thead>
+<tbody>
+<tr><td>320 tri</td><td>~580 µs</td><td>550K tri/s</td></tr>
+<tr><td>1,280 tri</td><td>~7.3 ms</td><td>175K tri/s</td></tr>
+<tr><td>5,120 tri</td><td>~105 ms</td><td>48K tri/s</td></tr>
+</tbody>
+</table>
+</div>
+<p>Decimation scales well for large meshes.</p>
+<h2 id="cli-usage-1"><a class="header" href="#cli-usage-1">CLI Usage</a></h2>
+<pre><code class="language-bash"># Reduce to 50% triangles
+mesh-cli decimate input.stl -o output.stl --ratio 0.5
+
+# Reduce to specific count
+mesh-cli decimate input.stl -o output.stl --target 10000
+</code></pre>
+<h2 id="when-to-decimate"><a class="header" href="#when-to-decimate">When to Decimate</a></h2>
+<ul>
+<li><strong>After scanning</strong>: Raw scans are often over-tessellated</li>
+<li><strong>Before boolean operations</strong>: Fewer faces = faster operations</li>
+<li><strong>For real-time display</strong>: Reduce for preview/LOD</li>
+<li><strong>Before export</strong>: Smaller files, faster slicing</li>
+</ul>
+<h2 id="quality-vs-size-trade-off"><a class="header" href="#quality-vs-size-trade-off">Quality vs Size Trade-off</a></h2>
+<pre><code class="language-rust">// Aggressive decimation (may lose detail)
+let params = DecimateParams::with_target_ratio(0.1);
+
+// Conservative decimation (preserves more detail)
+let params = DecimateParams::with_target_ratio(0.8);</code></pre>
+<p>Test on your specific models to find the right balance.</p>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<ul>
+<li><a href="#remeshing">Remeshing</a> - Improve triangle quality</li>
+<li><a href="#pipeline-api">Pipeline API</a> - Chain with other operations</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="remeshing"><a class="header" href="#remeshing">Remeshing</a></h1>
+<p>Remeshing creates a new mesh with uniform, well-shaped triangles.</p>
+<h2 id="why-remesh"><a class="header" href="#why-remesh">Why Remesh?</a></h2>
+<ul>
+<li><strong>Uniform triangles</strong>: Better for simulation and analysis</li>
+<li><strong>Controlled density</strong>: Specify target edge length</li>
+<li><strong>Quality improvement</strong>: Replace poor triangles</li>
+<li><strong>Noise reduction</strong>: Smooths scan artifacts</li>
+</ul>
+<h2 id="basic-usage-1"><a class="header" href="#basic-usage-1">Basic Usage</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, remesh_isotropic, RemeshParams};
+
+let mesh = load_mesh("scan.stl")?;
+
+let params = RemeshParams {
+    target_edge_length: Some(0.5),  // 0.5mm edges
+    iterations: 5,
+    ..Default::default()
+};
+
+let result = remesh_isotropic(&amp;mesh, &amp;params);
+println!("Remeshed: {} faces", result.mesh.face_count());</code></pre>
+<h2 id="parameters"><a class="header" href="#parameters">Parameters</a></h2>
+<h3 id="target-edge-length"><a class="header" href="#target-edge-length">Target Edge Length</a></h3>
+<p>Controls triangle size:</p>
+<pre><code class="language-rust">let params = RemeshParams {
+    target_edge_length: Some(0.5),  // Smaller = more triangles
+    ..Default::default()
+};</code></pre>
+<p><strong>Guidelines</strong>:</p>
+<ul>
+<li><code>0.1 mm</code>: Very fine, for detailed features</li>
+<li><code>0.5 mm</code>: Good for most custom-fit products</li>
+<li><code>1.0 mm</code>: Coarse, for large parts</li>
+</ul>
+<h3 id="iterations"><a class="header" href="#iterations">Iterations</a></h3>
+<p>More iterations = better quality, longer time:</p>
+<pre><code class="language-rust">let params = RemeshParams {
+    target_edge_length: Some(0.5),
+    iterations: 5,  // Default: 5
+    ..Default::default()
+};</code></pre>
+<h3 id="feature-preservation"><a class="header" href="#feature-preservation">Feature Preservation</a></h3>
+<p>Preserve sharp edges and corners:</p>
+<pre><code class="language-rust">let params = RemeshParams {
+    target_edge_length: Some(0.5),
+    preserve_features: true,
+    feature_angle: 30.0,  // Degrees
+    ..Default::default()
+};</code></pre>
+<h2 id="algorithm-1"><a class="header" href="#algorithm-1">Algorithm</a></h2>
+<p>Isotropic remeshing uses iterative operations:</p>
+<ol>
+<li><strong>Split long edges</strong>: Edges &gt; 4/3 × target</li>
+<li><strong>Collapse short edges</strong>: Edges &lt; 4/5 × target</li>
+<li><strong>Flip edges</strong>: Improve vertex valence</li>
+<li><strong>Smooth vertices</strong>: Tangential relaxation</li>
+</ol>
+<p>Each iteration improves triangle quality.</p>
+<h2 id="remeshing-result"><a class="header" href="#remeshing-result">Remeshing Result</a></h2>
+<pre><code class="language-rust">let result = remesh_isotropic(&amp;mesh, &amp;params);
+
+println!("Final mesh: {} faces", result.mesh.face_count());
+println!("Iterations: {}", result.iterations_performed);</code></pre>
+<h2 id="pipeline-integration-1"><a class="header" href="#pipeline-integration-1">Pipeline Integration</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline};
+
+let mesh = load_mesh("scan.stl")?;
+
+let result = Pipeline::new(mesh)
+    .weld_vertices(1e-6)
+    .fill_holes()
+    .remesh(0.5)  // 0.5mm target edge length
+    .finish();</code></pre>
+<h2 id="performance-3"><a class="header" href="#performance-3">Performance</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Mesh Size</th><th>5 Iterations</th><th>Throughput</th></tr>
+</thead>
+<tbody>
+<tr><td>320 tri</td><td>~38 ms</td><td>8.4K tri/s</td></tr>
+<tr><td>1,280 tri</td><td>~48 ms</td><td>26K tri/s</td></tr>
+</tbody>
+</table>
+</div>
+<p>Remeshing is computationally intensive but scales linearly.</p>
+<h2 id="when-to-remesh"><a class="header" href="#when-to-remesh">When to Remesh</a></h2>
+<ul>
+<li><strong>After scan import</strong>: Clean up scanner artifacts</li>
+<li><strong>Before simulation</strong>: Uniform elements for FEA</li>
+<li><strong>After boolean operations</strong>: Clean up intersection regions</li>
+<li><strong>For visualization</strong>: Consistent shading</li>
+</ul>
+<h2 id="remesh-vs-decimate"><a class="header" href="#remesh-vs-decimate">Remesh vs Decimate</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Use When</th></tr>
+</thead>
+<tbody>
+<tr><td>Decimate</td><td>Need fewer triangles, preserve shape</td></tr>
+<tr><td>Remesh</td><td>Need uniform triangles, quality matters</td></tr>
+<tr><td>Both</td><td>Decimate first, then remesh</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="cli-usage-2"><a class="header" href="#cli-usage-2">CLI Usage</a></h2>
+<pre><code class="language-bash"># Remesh with 0.5mm edges
+mesh-cli remesh input.stl -o output.stl --edge-length 0.5
+
+# With more iterations
+mesh-cli remesh input.stl -o output.stl --edge-length 0.5 --iterations 10
+</code></pre>
+<h2 id="tips"><a class="header" href="#tips">Tips</a></h2>
+<ol>
+<li><strong>Weld vertices first</strong>: Remeshing needs proper connectivity</li>
+<li><strong>Fill holes first</strong>: Boundary handling is limited</li>
+<li><strong>Start with fewer iterations</strong>: Increase if quality insufficient</li>
+<li><strong>Match edge length to features</strong>: Don’t go smaller than smallest detail</li>
+</ol>
+<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
+<ul>
+<li><a href="#subdivision">Subdivision</a> - Smooth surface</li>
+<li><a href="#shell-generation-1">Shell Generation</a> - Create hollow parts</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="subdivision"><a class="header" href="#subdivision">Subdivision</a></h1>
+<p>Subdivision smooths meshes by adding triangles and adjusting vertices.</p>
+<h2 id="basic-usage-2"><a class="header" href="#basic-usage-2">Basic Usage</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, subdivide_mesh, SubdivideParams};
+
+let mesh = load_mesh("model.stl")?;
+println!("Original: {} faces", mesh.face_count());
+
+let params = SubdivideParams::with_iterations(2);
+let result = subdivide_mesh(&amp;mesh, &amp;params);
+
+println!("Subdivided: {} faces", result.mesh.face_count());</code></pre>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
+<p>mesh-repair implements <strong>Loop subdivision</strong>:</p>
+<ol>
+<li>Each triangle becomes 4 triangles</li>
+<li>New vertices placed at edge midpoints</li>
+<li>All vertices moved toward neighbors</li>
+<li>Result is smoother surface</li>
+</ol>
+<pre><code>Original:           After 1 subdivision:
+    /\                    /\
+   /  \                  /--\
+  /    \                /\  /\
+ /______\              /__\/__\
+</code></pre>
+<p><strong>Face count growth</strong>: F × 4^n (where n = iterations)</p>
+<ul>
+<li>1 iteration: 4× faces</li>
+<li>2 iterations: 16× faces</li>
+<li>3 iterations: 64× faces</li>
+</ul>
+<h2 id="parameters-1"><a class="header" href="#parameters-1">Parameters</a></h2>
+<h3 id="iterations-1"><a class="header" href="#iterations-1">Iterations</a></h3>
+<pre><code class="language-rust">// Single subdivision (4× faces)
+let params = SubdivideParams::with_iterations(1);
+
+// Double subdivision (16× faces)
+let params = SubdivideParams::with_iterations(2);</code></pre>
+<p><strong>Warning</strong>: Face count grows exponentially. Use sparingly.</p>
+<h2 id="subdivision-result"><a class="header" href="#subdivision-result">Subdivision Result</a></h2>
+<pre><code class="language-rust">let result = subdivide_mesh(&amp;mesh, &amp;params);
+
+println!("Final faces: {}", result.mesh.face_count());</code></pre>
+<h2 id="pipeline-integration-2"><a class="header" href="#pipeline-integration-2">Pipeline Integration</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline};
+
+let mesh = load_mesh("model.stl")?;
+
+let result = Pipeline::new(mesh)
+    .subdivide(1)           // Smooth
+    .decimate_to_ratio(0.5) // Reduce back down
+    .finish();</code></pre>
+<h2 id="when-to-use"><a class="header" href="#when-to-use">When to Use</a></h2>
+<ul>
+<li><strong>Smoothing low-poly models</strong>: Add surface detail</li>
+<li><strong>Before shell generation</strong>: Smoother inner surface</li>
+<li><strong>For visualization</strong>: Better rendering quality</li>
+</ul>
+<h2 id="volume-changes"><a class="header" href="#volume-changes">Volume Changes</a></h2>
+<p>Loop subdivision <strong>changes volume</strong>:</p>
+<ul>
+<li>Convex shapes shrink (corners smoothed inward)</li>
+<li>Concave shapes grow (corners smoothed outward)</li>
+</ul>
+<p>For volume preservation, consider remeshing instead.</p>
+<h2 id="subdivision-vs-remeshing"><a class="header" href="#subdivision-vs-remeshing">Subdivision vs Remeshing</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Result</th><th>Volume</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>Subdivision</td><td>Smooth surface, more faces</td><td>Changes</td><td>Smoothing</td></tr>
+<tr><td>Remeshing</td><td>Uniform triangles, configurable density</td><td>Preserved</td><td>Quality improvement</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="tips-1"><a class="header" href="#tips-1">Tips</a></h2>
+<ol>
+<li><strong>Start with clean mesh</strong>: Fix topology issues first</li>
+<li><strong>Use minimal iterations</strong>: 1-2 is usually enough</li>
+<li><strong>Decimate after</strong>: Control final triangle count</li>
+<li><strong>Watch memory</strong>: High iterations consume lots of memory</li>
+</ol>
+<h2 id="example-smooth-then-reduce"><a class="header" href="#example-smooth-then-reduce">Example: Smooth Then Reduce</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline};
+
+let mesh = load_mesh("blocky.stl")?;
+
+let result = Pipeline::new(mesh)
+    .subdivide(2)              // Smooth (16× faces)
+    .decimate_to_ratio(0.1)    // Reduce to 10%
+    .finish();
+
+// Result: smooth surface, reasonable face count
+save_mesh(&amp;result.mesh, "smooth.stl")?;</code></pre>
+<h2 id="cli-usage-3"><a class="header" href="#cli-usage-3">CLI Usage</a></h2>
+<pre><code class="language-bash"># Subdivide once
+mesh-cli subdivide input.stl -o output.stl
+
+# Subdivide twice
+mesh-cli subdivide input.stl -o output.stl --iterations 2
+</code></pre>
+<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
+<ul>
+<li><a href="#boolean-operations">Boolean Operations</a> - Combine meshes</li>
+<li><a href="#shell-generation-1">Shell Generation</a> - Create hollow parts</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="boolean-operations"><a class="header" href="#boolean-operations">Boolean Operations</a></h1>
+<p>Boolean operations combine two meshes using set operations: union, intersection, or difference.</p>
+<h2 id="operations"><a class="header" href="#operations">Operations</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Result</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Union</strong></td><td>A ∪ B</td><td>Combine parts</td></tr>
+<tr><td><strong>Intersection</strong></td><td>A ∩ B</td><td>Find overlap</td></tr>
+<tr><td><strong>Difference</strong></td><td>A - B</td><td>Cut/subtract</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="basic-usage-3"><a class="header" href="#basic-usage-3">Basic Usage</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, boolean_operation, BooleanOp, BooleanParams};
+
+let mesh_a = load_mesh("part_a.stl")?;
+let mesh_b = load_mesh("part_b.stl")?;
+
+let params = BooleanParams::default();
+
+// Union: combine both meshes
+let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Union, &amp;params)?;
+
+// Intersection: keep only overlapping region
+let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Intersection, &amp;params)?;
+
+// Difference: subtract B from A
+let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Difference, &amp;params)?;
+
+println!("Result: {} faces", result.mesh.face_count());</code></pre>
+<h2 id="requirements-1"><a class="header" href="#requirements-1">Requirements</a></h2>
+<p>Both input meshes must be:</p>
+<ul>
+<li><strong>Watertight</strong>: No holes or boundary edges</li>
+<li><strong>Manifold</strong>: Well-defined inside/outside</li>
+<li><strong>Overlapping</strong>: Some spatial intersection (for non-union operations)</li>
+</ul>
+<h2 id="parameters-2"><a class="header" href="#parameters-2">Parameters</a></h2>
+<pre><code class="language-rust">let params = BooleanParams {
+    tolerance: 1e-6,  // Intersection tolerance
+    ..Default::default()
+};</code></pre>
+<h2 id="boolean-result"><a class="header" href="#boolean-result">Boolean Result</a></h2>
+<pre><code class="language-rust">let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Union, &amp;params)?;
+
+println!("Result faces: {}", result.mesh.face_count());</code></pre>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h3 id="combining-parts"><a class="header" href="#combining-parts">Combining Parts</a></h3>
+<pre><code class="language-rust">// Merge two separate pieces
+let combined = boolean_operation(&amp;part1, &amp;part2, BooleanOp::Union, &amp;params)?;</code></pre>
+<h3 id="creating-cutouts"><a class="header" href="#creating-cutouts">Creating Cutouts</a></h3>
+<pre><code class="language-rust">// Cut a hole using a cylinder
+let with_hole = boolean_operation(&amp;solid, &amp;cylinder, BooleanOp::Difference, &amp;params)?;</code></pre>
+<h3 id="finding-overlap"><a class="header" href="#finding-overlap">Finding Overlap</a></h3>
+<pre><code class="language-rust">// Find where two parts intersect
+let overlap = boolean_operation(&amp;part1, &amp;part2, BooleanOp::Intersection, &amp;params)?;</code></pre>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<p>Boolean operations are computationally expensive:</p>
+<ul>
+<li>O(F1 × F2) worst case</li>
+<li>Benefits from spatial acceleration</li>
+<li>Consider decimating inputs first</li>
+</ul>
+<pre><code class="language-rust">// Decimate before boolean for speed
+let mesh_a = decimate_mesh(&amp;original_a, &amp;DecimateParams::with_target_ratio(0.5)).mesh;
+let mesh_b = decimate_mesh(&amp;original_b, &amp;DecimateParams::with_target_ratio(0.5)).mesh;
+
+let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Union, &amp;params)?;</code></pre>
+<h2 id="error-handling-1"><a class="header" href="#error-handling-1">Error Handling</a></h2>
+<pre><code class="language-rust">match boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Union, &amp;params) {
+    Ok(result) =&gt; {
+        println!("Success: {} faces", result.mesh.face_count());
+    }
+    Err(e) =&gt; {
+        eprintln!("Boolean failed: {}", e);
+        // Common issues:
+        // - Non-watertight input
+        // - Non-manifold geometry
+        // - No intersection region
+    }
+}</code></pre>
+<h2 id="tips-2"><a class="header" href="#tips-2">Tips</a></h2>
+<ol>
+<li><strong>Validate inputs</strong>: Ensure both meshes are watertight and manifold</li>
+<li><strong>Repair first</strong>: Use repair operations before boolean</li>
+<li><strong>Simplify</strong>: Decimate complex meshes for speed</li>
+<li><strong>Clean after</strong>: Boolean results may need cleanup</li>
+</ol>
+<h2 id="example-create-shell-with-cutout"><a class="header" href="#example-create-shell-with-cutout">Example: Create Shell with Cutout</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, boolean_operation, BooleanOp, BooleanParams};
+
+let outer = load_mesh("outer_shell.stl")?;
+let inner = load_mesh("inner_shell.stl")?;
+let cutout = load_mesh("ventilation_hole.stl")?;
+
+let params = BooleanParams::default();
+
+// Create hollow shell
+let shell = boolean_operation(&amp;outer, &amp;inner, BooleanOp::Difference, &amp;params)?;
+
+// Add ventilation cutout
+let final_shell = boolean_operation(&amp;shell.mesh, &amp;cutout, BooleanOp::Difference, &amp;params)?;</code></pre>
+<h2 id="cli-usage-4"><a class="header" href="#cli-usage-4">CLI Usage</a></h2>
+<pre><code class="language-bash"># Union
+mesh-cli boolean union a.stl b.stl -o result.stl
+
+# Difference
+mesh-cli boolean difference a.stl b.stl -o result.stl
+
+# Intersection
+mesh-cli boolean intersection a.stl b.stl -o result.stl
+</code></pre>
+<h2 id="limitations"><a class="header" href="#limitations">Limitations</a></h2>
+<ul>
+<li>Requires watertight, manifold inputs</li>
+<li>May produce small artifacts at intersection edges</li>
+<li>Complex intersections may fail or produce degenerate faces</li>
+</ul>
+<p>Consider <a href="#shell-generation-1">Shell Generation</a> for creating hollow parts from solid meshes.</p>
+<h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
+<ul>
+<li><a href="#shell-generation-1">Shell Generation</a> - Create hollow shells</li>
+<li><a href="#pipeline-api">Pipeline API</a> - Chain operations</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="shell-generation-1"><a class="header" href="#shell-generation-1">Shell Generation</a></h1>
+<p>Shell generation creates hollow parts with uniform wall thickness. This is the core operation for custom-fit products.</p>
+<h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
+<p>Shell generation takes a solid mesh and creates a hollow version:</p>
+<pre><code>Solid input:        Shell output:
+┌─────────┐         ┌─────────┐
+│█████████│         │░░░░░░░░░│
+│█████████│   →     │░░┌───┐░░│
+│█████████│         │░░│   │░░│
+└─────────┘         └──┴───┴──┘
+                    (hollow inside)
+</code></pre>
+<h2 id="basic-usage-4"><a class="header" href="#basic-usage-4">Basic Usage</a></h2>
+<pre><code class="language-rust">use mesh_repair::load_mesh;
+use mesh_shell::{generate_shell, ShellParams};
+
+let mesh = load_mesh("solid_part.stl")?;
+
+let params = ShellParams {
+    wall_thickness_mm: 2.0,  // 2mm walls
+    ..Default::default()
+};
+
+let shell = generate_shell(&amp;mesh, &amp;params)?;
+
+println!("Shell: {} faces", shell.face_count());</code></pre>
+<h2 id="parameters-3"><a class="header" href="#parameters-3">Parameters</a></h2>
+<h3 id="wall-thickness"><a class="header" href="#wall-thickness">Wall Thickness</a></h3>
+<p>The most important parameter:</p>
+<pre><code class="language-rust">let params = ShellParams {
+    wall_thickness_mm: 2.0,  // 2mm thick walls
+    ..Default::default()
+};</code></pre>
+<p><strong>Typical values</strong>:</p>
+<ul>
+<li><code>1.5 mm</code>: Flexible, lightweight</li>
+<li><code>2.0 mm</code>: Balanced (good default)</li>
+<li><code>3.0 mm</code>: Rigid, durable</li>
+<li><code>4.0+ mm</code>: Very rigid, heavy</li>
+</ul>
+<h3 id="generation-method"><a class="header" href="#generation-method">Generation Method</a></h3>
+<p>Two methods for creating offset surfaces:</p>
+<pre><code class="language-rust">use mesh_shell::{ShellParams, WallGenerationMethod};
+
+// Normal offset (fast, may have issues with complex geometry)
+let params = ShellParams {
+    wall_thickness_mm: 2.0,
+    wall_generation_method: WallGenerationMethod::Normal,
+    ..Default::default()
+};
+
+// SDF-based offset (robust, handles complex geometry)
+let params = ShellParams {
+    wall_thickness_mm: 2.0,
+    wall_generation_method: WallGenerationMethod::Sdf,
+    sdf_voxel_size_mm: 0.5,  // Controls resolution
+    ..Default::default()
+};</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Speed</th><th>Quality</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>Normal</td><td>Fast</td><td>May self-intersect</td><td>Simple shapes</td></tr>
+<tr><td>SDF</td><td>Slower</td><td>Robust</td><td>Complex geometry</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="sdf-resolution"><a class="header" href="#sdf-resolution">SDF Resolution</a></h3>
+<p>For SDF method, control voxel size:</p>
+<pre><code class="language-rust">let params = ShellParams {
+    wall_generation_method: WallGenerationMethod::Sdf,
+    sdf_voxel_size_mm: 0.5,  // Smaller = higher quality, slower
+    ..Default::default()
+};</code></pre>
+<p><strong>Guidelines</strong>:</p>
+<ul>
+<li><code>0.25 mm</code>: High quality, slow</li>
+<li><code>0.5 mm</code>: Balanced (good default)</li>
+<li><code>1.0 mm</code>: Fast, coarser detail</li>
+</ul>
+<h2 id="shell-generation-process"><a class="header" href="#shell-generation-process">Shell Generation Process</a></h2>
+<ol>
+<li><strong>Compute offset surface</strong>: Inner surface at wall_thickness distance</li>
+<li><strong>Generate walls</strong>: Connect inner and outer surfaces at boundaries</li>
+<li><strong>Cap openings</strong>: Close any remaining holes</li>
+<li><strong>Validate</strong>: Ensure watertight result</li>
+</ol>
+<h2 id="pipeline-integration-3"><a class="header" href="#pipeline-integration-3">Pipeline Integration</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline};
+use mesh_shell::{ShellParams, WallGenerationMethod};
+
+let mesh = load_mesh("foot_scan.stl")?;
+
+// First: repair and prepare the scan
+let repaired = Pipeline::new(mesh)
+    .weld_vertices(1e-6)
+    .fill_holes()
+    .remove_small_components(100)
+    .decimate_to_ratio(0.5)
+    .finish();
+
+// Then: generate shell
+let shell_params = ShellParams {
+    wall_thickness_mm: 2.0,
+    wall_generation_method: WallGenerationMethod::Sdf,
+    ..Default::default()
+};
+
+let shell = generate_shell(&amp;repaired.mesh, &amp;shell_params)?;
+
+save_mesh(&amp;shell, "foot_shell.stl")?;</code></pre>
+<h2 id="rim-generation"><a class="header" href="#rim-generation">Rim Generation</a></h2>
+<p>Shells often need rims (flanges) for attachment:</p>
+<pre><code class="language-rust">use mesh_shell::{generate_shell_with_rim, ShellParams, RimParams};
+
+let shell_params = ShellParams {
+    wall_thickness_mm: 2.0,
+    ..Default::default()
+};
+
+let rim_params = RimParams {
+    width_mm: 5.0,       // Rim extends 5mm
+    thickness_mm: 3.0,   // Rim is 3mm thick
+    ..Default::default()
+};
+
+let shell = generate_shell_with_rim(&amp;mesh, &amp;shell_params, &amp;rim_params)?;</code></pre>
+<h2 id="gpu-acceleration-1"><a class="header" href="#gpu-acceleration-1">GPU Acceleration</a></h2>
+<p>For faster SDF computation:</p>
+<pre><code class="language-rust">use mesh_gpu::GpuContext;
+use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+// Create GPU context
+let gpu = GpuContext::new()?;
+
+let params = ShellParams {
+    wall_generation_method: WallGenerationMethod::Sdf,
+    gpu_context: Some(&amp;gpu),
+    ..Default::default()
+};
+
+let shell = generate_shell(&amp;mesh, &amp;params)?;</code></pre>
+<p>GPU provides 3-68× speedup for SDF operations.</p>
+<h2 id="quality-checklist"><a class="header" href="#quality-checklist">Quality Checklist</a></h2>
+<p>After shell generation, verify:</p>
+<pre><code class="language-rust">use mesh_repair::validate_mesh;
+
+let shell = generate_shell(&amp;mesh, &amp;params)?;
+let report = validate_mesh(&amp;shell);
+
+assert!(report.is_watertight, "Shell should be watertight");
+assert!(report.is_manifold, "Shell should be manifold");
+println!("Shell is ready for 3D printing!");</code></pre>
+<h2 id="cli-usage-5"><a class="header" href="#cli-usage-5">CLI Usage</a></h2>
+<pre><code class="language-bash"># Generate shell with 2mm walls
+mesh-cli shell solid.stl -o hollow.stl --thickness 2.0
+
+# Use SDF method
+mesh-cli shell solid.stl -o hollow.stl --thickness 2.0 --method sdf
+
+# With rim
+mesh-cli shell solid.stl -o hollow.stl --thickness 2.0 --rim-width 5.0
+</code></pre>
+<h2 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h2>
+<h3 id="self-intersections"><a class="header" href="#self-intersections">Self-Intersections</a></h3>
+<p>Problem: Normal offset creates self-intersecting geometry on complex shapes.</p>
+<p>Solution: Use SDF method with appropriate voxel size.</p>
+<h3 id="thin-features-lost"><a class="header" href="#thin-features-lost">Thin Features Lost</a></h3>
+<p>Problem: Features thinner than wall thickness disappear.</p>
+<p>Solution: Reduce wall thickness or use adaptive offset.</p>
+<h3 id="poor-quality-at-boundaries"><a class="header" href="#poor-quality-at-boundaries">Poor Quality at Boundaries</a></h3>
+<p>Problem: Rough edges where inner/outer surfaces meet.</p>
+<p>Solution: Increase SDF resolution or post-process with remeshing.</p>
+<h2 id="use-cases-1"><a class="header" href="#use-cases-1">Use Cases</a></h2>
+<ul>
+<li><strong>Shoe insoles</strong>: Scan foot → generate shell → 3D print</li>
+<li><strong>Helmet liners</strong>: Scan head → generate shell → add ventilation</li>
+<li><strong>Orthotics</strong>: Scan limb → generate shell → customize fit</li>
+<li><strong>Protective gear</strong>: Scan body part → generate padded shell</li>
+</ul>
+<h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
+<ul>
+<li><a href="#pipeline-api">Pipeline API</a> - Complete workflows</li>
+<li><a href="#custom-fit-products-overview">Tutorials</a> - Real-world examples</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="pipeline-api"><a class="header" href="#pipeline-api">Pipeline API</a></h1>
+<p>The Pipeline API provides a fluent interface for chaining mesh operations.</p>
+<h2 id="basic-usage-5"><a class="header" href="#basic-usage-5">Basic Usage</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline};
+
+let mesh = load_mesh("scan.stl")?;
+
+let result = Pipeline::new(mesh)
+    .validate()
+    .weld_vertices(1e-6)
+    .fill_holes()
+    .decimate_to_ratio(0.5)
+    .finish();
+
+println!("Processed mesh: {} faces", result.mesh.face_count());
+println!("Stages executed: {}", result.stages_executed);</code></pre>
+<h2 id="available-operations"><a class="header" href="#available-operations">Available Operations</a></h2>
+<h3 id="validation"><a class="header" href="#validation">Validation</a></h3>
+<pre><code class="language-rust">Pipeline::new(mesh)
+    .validate()  // Runs validation, stores report
+    .finish();</code></pre>
+<h3 id="repair-operations-1"><a class="header" href="#repair-operations-1">Repair Operations</a></h3>
+<pre><code class="language-rust">Pipeline::new(mesh)
+    .weld_vertices(1e-6)             // Merge duplicate vertices
+    .remove_degenerate_triangles(1e-10)  // Remove zero-area faces
+    .fill_holes()                    // Close gaps
+    .fix_winding()                   // Consistent normals
+    .remove_small_components(100)    // Remove noise (min 100 faces)
+    .keep_largest_component()        // Keep only biggest piece
+    .finish();</code></pre>
+<h3 id="simplification"><a class="header" href="#simplification">Simplification</a></h3>
+<pre><code class="language-rust">Pipeline::new(mesh)
+    .decimate_to_ratio(0.5)          // Keep 50% of triangles
+    .decimate_to_target(10_000)      // Target specific count
+    .finish();</code></pre>
+<h3 id="quality-improvement"><a class="header" href="#quality-improvement">Quality Improvement</a></h3>
+<pre><code class="language-rust">Pipeline::new(mesh)
+    .remesh(0.5)                     // Isotropic remesh, 0.5mm edges
+    .subdivide(1)                    // Loop subdivision, 1 iteration
+    .finish();</code></pre>
+<h3 id="transform"><a class="header" href="#transform">Transform</a></h3>
+<pre><code class="language-rust">Pipeline::new(mesh)
+    .scale(2.0)                      // Double size
+    .translate(10.0, 0.0, 0.0)       // Move 10 units in X
+    .finish();</code></pre>
+<h2 id="pipeline-result"><a class="header" href="#pipeline-result">Pipeline Result</a></h2>
+<pre><code class="language-rust">let result = Pipeline::new(mesh)
+    .weld_vertices(1e-6)
+    .decimate_to_ratio(0.5)
+    .finish();
+
+// Access final mesh
+let final_mesh = result.mesh;
+
+// Check execution stats
+println!("Stages executed: {}", result.stages_executed);</code></pre>
+<h2 id="chaining-examples"><a class="header" href="#chaining-examples">Chaining Examples</a></h2>
+<h3 id="scan-cleanup-pipeline"><a class="header" href="#scan-cleanup-pipeline">Scan Cleanup Pipeline</a></h3>
+<pre><code class="language-rust">let result = Pipeline::new(scan_mesh)
+    .weld_vertices(1e-6)           // 1. Fix connectivity
+    .remove_degenerate_triangles(1e-10)  // 2. Remove bad faces
+    .remove_small_components(50)   // 3. Remove scan noise
+    .fill_holes()                  // 4. Close gaps
+    .fix_winding()                 // 5. Consistent normals
+    .validate()                    // 6. Check result
+    .finish();</code></pre>
+<h3 id="optimization-pipeline"><a class="header" href="#optimization-pipeline">Optimization Pipeline</a></h3>
+<pre><code class="language-rust">let result = Pipeline::new(mesh)
+    .decimate_to_ratio(0.3)        // Reduce to 30%
+    .remesh(0.5)                   // Uniform 0.5mm triangles
+    .finish();</code></pre>
+<h3 id="smooth-and-simplify"><a class="header" href="#smooth-and-simplify">Smooth and Simplify</a></h3>
+<pre><code class="language-rust">let result = Pipeline::new(mesh)
+    .subdivide(1)                  // Smooth (4× faces)
+    .decimate_to_target(10_000)    // Back down to 10k
+    .finish();</code></pre>
+<h2 id="custom-parameters"><a class="header" href="#custom-parameters">Custom Parameters</a></h2>
+<p>For fine control, use parameter structs:</p>
+<pre><code class="language-rust">use mesh_repair::{Pipeline, DecimateParams, RemeshParams};
+
+let decimate_params = DecimateParams {
+    target_ratio: 0.5,
+    preserve_boundaries: true,
+    ..Default::default()
+};
+
+let remesh_params = RemeshParams {
+    target_edge_length: Some(0.5),
+    iterations: 5,
+    preserve_features: true,
+    ..Default::default()
+};
+
+let result = Pipeline::new(mesh)
+    .decimate_with_params(&amp;decimate_params)
+    .remesh_with_params(&amp;remesh_params)
+    .finish();</code></pre>
+<h2 id="error-handling-2"><a class="header" href="#error-handling-2">Error Handling</a></h2>
+<p>Pipeline operations that can fail return <code>Result</code>:</p>
+<pre><code class="language-rust">use mesh_repair::Pipeline;
+
+let result = Pipeline::new(mesh)
+    .weld_vertices(1e-6)
+    .fill_holes()       // May fail
+    .fix_winding()      // May fail
+    .finish();
+
+// Or handle errors explicitly:
+match Pipeline::new(mesh).fill_holes().try_finish() {
+    Ok(result) =&gt; println!("Success: {} faces", result.mesh.face_count()),
+    Err(e) =&gt; eprintln!("Pipeline failed: {}", e),
+}</code></pre>
+<h2 id="pipeline-vs-individual-functions"><a class="header" href="#pipeline-vs-individual-functions">Pipeline vs Individual Functions</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Approach</th><th>Use When</th></tr>
+</thead>
+<tbody>
+<tr><td>Pipeline</td><td>Multiple operations, cleaner code</td></tr>
+<tr><td>Individual functions</td><td>Single operation, need intermediate results</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-rust">// Pipeline approach
+let result = Pipeline::new(mesh)
+    .weld_vertices(1e-6)
+    .fill_holes()
+    .finish();
+
+// Individual approach (more control)
+let mut mesh = load_mesh("model.stl")?;
+weld_vertices(&amp;mut mesh, 1e-6);
+println!("After weld: {} vertices", mesh.vertex_count());
+fill_holes(&amp;mut mesh)?;
+println!("After fill: {} faces", mesh.face_count());</code></pre>
+<h2 id="best-practices-1"><a class="header" href="#best-practices-1">Best Practices</a></h2>
+<ol>
+<li><strong>Order matters</strong>: Weld before fill, fill before fix winding</li>
+<li><strong>Validate last</strong>: Check final result</li>
+<li><strong>Keep intermediate meshes</strong>: For debugging, break into steps</li>
+<li><strong>Don’t over-process</strong>: Each step adds computation time</li>
+</ol>
+<h2 id="typical-pipeline-order"><a class="header" href="#typical-pipeline-order">Typical Pipeline Order</a></h2>
+<pre><code class="language-rust">// Recommended order for scan processing
+let result = Pipeline::new(scan)
+    // 1. Fix connectivity
+    .weld_vertices(1e-6)
+
+    // 2. Clean up
+    .remove_degenerate_triangles(1e-10)
+    .remove_small_components(50)
+
+    // 3. Close holes
+    .fill_holes()
+
+    // 4. Fix orientation
+    .fix_winding()
+
+    // 5. Optimize (optional)
+    .decimate_to_ratio(0.5)
+    .remesh(0.5)
+
+    // 6. Validate
+    .validate()
+
+    .finish();</code></pre>
+<h2 id="next-steps-11"><a class="header" href="#next-steps-11">Next Steps</a></h2>
+<ul>
+<li><a href="#custom-fit-products-overview">Tutorials</a> - Complete workflows</li>
+<li><a href="#example-gallery">Examples</a> - Real-world code</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="custom-fit-products-overview"><a class="header" href="#custom-fit-products-overview">Custom-Fit Products Overview</a></h1>
+<p>This section provides tutorials for building custom-fit product applications using mesh-repair.</p>
+<h2 id="the-custom-fit-pipeline"><a class="header" href="#the-custom-fit-pipeline">The Custom-Fit Pipeline</a></h2>
+<p>All custom-fit products follow a similar pattern:</p>
+<pre><code>┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  3D Scan    │ ──▶ │   Repair    │ ──▶ │  Generate   │ ──▶ │ Manufacture │
+│             │     │             │     │   Shell     │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+   Raw scan          Clean mesh          Hollow part         3D print/mill
+</code></pre>
+<h2 id="typical-workflow"><a class="header" href="#typical-workflow">Typical Workflow</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+use mesh_shell::{generate_shell, ShellParams};
+
+fn create_custom_product(scan_path: &amp;str, output_path: &amp;str) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // 1. Load scan
+    let scan = load_mesh(scan_path)?;
+    println!("Loaded scan: {} faces", scan.face_count());
+
+    // 2. Repair and prepare
+    let prepared = Pipeline::new(scan)
+        .weld_vertices(1e-6)
+        .remove_small_components(100)
+        .fill_holes()
+        .fix_winding()
+        .decimate_to_ratio(0.5)
+        .finish();
+
+    println!("Prepared mesh: {} faces", prepared.mesh.face_count());
+
+    // 3. Validate for shell generation
+    let report = validate_mesh(&amp;prepared.mesh);
+    if !report.is_watertight {
+        return Err("Mesh must be watertight for shell generation".into());
+    }
+
+    // 4. Generate shell
+    let shell_params = ShellParams {
+        wall_thickness_mm: 2.0,
+        ..Default::default()
+    };
+    let shell = generate_shell(&amp;prepared.mesh, &amp;shell_params)?;
+
+    println!("Generated shell: {} faces", shell.face_count());
+
+    // 5. Export for manufacturing
+    save_mesh(&amp;shell, output_path)?;
+
+    Ok(())
+}</code></pre>
+<h2 id="product-specific-tutorials"><a class="header" href="#product-specific-tutorials">Product-Specific Tutorials</a></h2>
+<p>Each product type has unique considerations:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Product</th><th>Key Considerations</th><th>Tutorial</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#tutorial-custom-shoe-insoles">Shoe Insoles</a></td><td>Foot anatomy, pressure points, flexibility</td><td>Scan → Shell → Print</td></tr>
+<tr><td><a href="#tutorial-custom-helmet-liners">Helmet Liners</a></td><td>Impact absorption, ventilation, fit</td><td>Multi-density shells</td></tr>
+<tr><td><a href="#tutorial-protective-equipment">Protective Equipment</a></td><td>Impact zones, coverage, mobility</td><td>Segmented shells</td></tr>
+<tr><td><a href="#tutorial-orthotics--medical-devices">Medical/Orthotics</a></td><td>Anatomical accuracy, compliance, materials</td><td>Precision fitting</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="common-challenges"><a class="header" href="#common-challenges">Common Challenges</a></h2>
+<h3 id="1-scan-quality"><a class="header" href="#1-scan-quality">1. Scan Quality</a></h3>
+<p>Raw 3D scans often have:</p>
+<ul>
+<li>Missing data (occlusions)</li>
+<li>Noise and artifacts</li>
+<li>Inconsistent density</li>
+<li>Multiple disconnected pieces</li>
+</ul>
+<p><strong>Solution</strong>: Robust repair pipeline before shell generation.</p>
+<h3 id="2-wall-thickness"><a class="header" href="#2-wall-thickness">2. Wall Thickness</a></h3>
+<p>Too thin: Breaks during use
+Too thick: Heavy, doesn’t flex properly</p>
+<p><strong>Solution</strong>: Test with material and use case.</p>
+<h3 id="3-fit-accuracy"><a class="header" href="#3-fit-accuracy">3. Fit Accuracy</a></h3>
+<p>Shell must match body contour precisely.</p>
+<p><strong>Solution</strong>: Minimal decimation in critical areas, validate dimensions.</p>
+<h3 id="4-manufacturing-constraints"><a class="header" href="#4-manufacturing-constraints">4. Manufacturing Constraints</a></h3>
+<ul>
+<li>Minimum wall thickness for printer</li>
+<li>Maximum build volume</li>
+<li>Support requirements</li>
+<li>Material properties</li>
+</ul>
+<p><strong>Solution</strong>: Design with manufacturing in mind.</p>
+<h2 id="reference-architecture"><a class="header" href="#reference-architecture">Reference Architecture</a></h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│                        Your Application                          │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │   Scanner   │  │   Web UI    │  │  Order Mgmt │             │
+│  │   Driver    │  │             │  │             │             │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘             │
+│         │                │                │                     │
+│         └────────────────┼────────────────┘                     │
+│                          │                                       │
+│  ┌───────────────────────┴───────────────────────┐             │
+│  │              mesh-repair / mesh-shell          │             │
+│  │  - Load scan                                   │             │
+│  │  - Repair topology                             │             │
+│  │  - Generate shell                              │             │
+│  │  - Export for manufacturing                    │             │
+│  └────────────────────────────────────────────────┘             │
+└─────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="getting-started-1"><a class="header" href="#getting-started-1">Getting Started</a></h2>
+<ol>
+<li>Start with <a href="#tutorial-custom-shoe-insoles">Shoe Insoles</a> - simplest workflow</li>
+<li>Progress to <a href="#tutorial-custom-helmet-liners">Helmet Liners</a> - multi-component</li>
+<li>Try <a href="#tutorial-protective-equipment">Protective Equipment</a> - segmented designs</li>
+<li>Learn <a href="#tutorial-orthotics--medical-devices">Medical/Orthotics</a> - precision requirements</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tutorial-custom-shoe-insoles"><a class="header" href="#tutorial-custom-shoe-insoles">Tutorial: Custom Shoe Insoles</a></h1>
+<p>This tutorial walks through creating custom-fit shoe insoles from 3D foot scans.</p>
+<h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
+<p><strong>Input</strong>: 3D scan of foot (bottom surface)
+<strong>Output</strong>: Hollow insole shell ready for 3D printing</p>
+<pre><code>Foot scan        →      Repaired mesh       →      Insole shell
+(noisy, holes)          (clean, watertight)        (hollow, printable)
+</code></pre>
+<h2 id="step-1-load-the-foot-scan"><a class="header" href="#step-1-load-the-foot-scan">Step 1: Load the Foot Scan</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load the foot scan
+    let scan = load_mesh("foot_scan.stl")?;
+
+    println!("Loaded foot scan:");
+    println!("  Vertices: {}", scan.vertex_count());
+    println!("  Faces: {}", scan.face_count());
+
+    // Check initial quality
+    let report = validate_mesh(&amp;scan);
+    println!("  Watertight: {}", report.is_watertight);
+    println!("  Components: {}", report.component_count);
+
+    Ok(())
+}</code></pre>
+<p><strong>Typical scan characteristics</strong>:</p>
+<ul>
+<li>50,000 - 200,000 triangles</li>
+<li>Multiple components (noise)</li>
+<li>Holes in occluded areas</li>
+<li>Non-manifold edges</li>
+</ul>
+<h2 id="step-2-clean-up-the-scan"><a class="header" href="#step-2-clean-up-the-scan">Step 2: Clean Up the Scan</a></h2>
+<pre><code class="language-rust">use mesh_repair::{Pipeline, validate_mesh};
+
+let repaired = Pipeline::new(scan)
+    // Merge duplicate vertices (scanner often creates duplicates)
+    .weld_vertices(0.1)  // 0.1mm tolerance
+
+    // Remove scanner noise (small disconnected pieces)
+    .remove_small_components(500)  // Keep only pieces &gt; 500 faces
+
+    // Close any holes
+    .fill_holes()
+
+    // Ensure consistent normals (outward-facing)
+    .fix_winding()
+
+    // Simplify to manageable size
+    .decimate_to_target(20_000)
+
+    .finish();
+
+println!("After cleanup: {} faces", repaired.mesh.face_count());
+
+// Verify
+let report = validate_mesh(&amp;repaired.mesh);
+assert!(report.is_watertight, "Must be watertight for shell generation");</code></pre>
+<h2 id="step-3-prepare-insole-region"><a class="header" href="#step-3-prepare-insole-region">Step 3: Prepare Insole Region</a></h2>
+<p>For insoles, we typically need just the bottom surface:</p>
+<pre><code class="language-rust">// Get mesh bounds to understand orientation
+if let Some((min, max)) = repaired.mesh.bounds() {
+    println!("Foot bounds:");
+    println!("  Length (Y): {:.1}mm", max.y - min.y);
+    println!("  Width (X): {:.1}mm", max.x - min.x);
+    println!("  Height (Z): {:.1}mm", max.z - min.z);
+}
+
+// For a plantar (bottom) scan, the mesh is typically already
+// oriented correctly. If not, you may need to rotate or clip.</code></pre>
+<h2 id="step-4-generate-insole-shell"><a class="header" href="#step-4-generate-insole-shell">Step 4: Generate Insole Shell</a></h2>
+<pre><code class="language-rust">use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+let shell_params = ShellParams {
+    // Wall thickness: 2mm for comfort + durability
+    wall_thickness_mm: 2.0,
+
+    // Use SDF method for robust results
+    wall_generation_method: WallGenerationMethod::Sdf,
+
+    // 0.5mm voxels for good detail
+    sdf_voxel_size_mm: 0.5,
+
+    ..Default::default()
+};
+
+let insole = generate_shell(&amp;repaired.mesh, &amp;shell_params)?;
+
+println!("Generated insole: {} faces", insole.face_count());</code></pre>
+<h2 id="step-5-add-support-features"><a class="header" href="#step-5-add-support-features">Step 5: Add Support Features</a></h2>
+<p>Insoles often need additional features:</p>
+<pre><code class="language-rust">// Example: Add heel cup rim
+use mesh_shell::{RimParams, generate_shell_with_rim};
+
+let rim_params = RimParams {
+    width_mm: 8.0,        // 8mm rim width
+    thickness_mm: 3.0,    // 3mm rim thickness
+    // Add rim only to heel area (you'd implement region detection)
+    ..Default::default()
+};
+
+let insole_with_rim = generate_shell_with_rim(
+    &amp;repaired.mesh,
+    &amp;shell_params,
+    &amp;rim_params
+)?;</code></pre>
+<h2 id="step-6-validate-and-export"><a class="header" href="#step-6-validate-and-export">Step 6: Validate and Export</a></h2>
+<pre><code class="language-rust">use mesh_repair::{save_mesh, validate_mesh};
+
+// Final validation
+let report = validate_mesh(&amp;insole);
+println!("Final insole:");
+println!("  Faces: {}", report.face_count);
+println!("  Watertight: {}", report.is_watertight);
+println!("  Manifold: {}", report.is_manifold);
+
+if report.is_printable() {
+    println!("Ready for 3D printing!");
+
+    // Export as 3MF (includes units, preferred by modern slicers)
+    save_mesh(&amp;insole, "custom_insole.3mf")?;
+
+    // Or STL for maximum compatibility
+    save_mesh(&amp;insole, "custom_insole.stl")?;
+} else {
+    eprintln!("Insole needs manual repair before printing");
+}</code></pre>
+<h2 id="complete-example"><a class="header" href="#complete-example">Complete Example</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+fn create_insole(scan_path: &amp;str, output_path: &amp;str) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    println!("Creating custom insole from: {}", scan_path);
+
+    // Load
+    let scan = load_mesh(scan_path)?;
+    println!("  Loaded: {} faces", scan.face_count());
+
+    // Repair
+    let repaired = Pipeline::new(scan)
+        .weld_vertices(0.1)
+        .remove_small_components(500)
+        .fill_holes()
+        .fix_winding()
+        .decimate_to_target(20_000)
+        .finish();
+
+    let report = validate_mesh(&amp;repaired.mesh);
+    if !report.is_watertight {
+        return Err("Scan could not be made watertight".into());
+    }
+    println!("  Repaired: {} faces", repaired.mesh.face_count());
+
+    // Generate shell
+    let shell_params = ShellParams {
+        wall_thickness_mm: 2.0,
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 0.5,
+        ..Default::default()
+    };
+
+    let insole = generate_shell(&amp;repaired.mesh, &amp;shell_params)?;
+    println!("  Shell: {} faces", insole.face_count());
+
+    // Export
+    save_mesh(&amp;insole, output_path)?;
+    println!("  Saved to: {}", output_path);
+
+    Ok(())
+}
+
+fn main() {
+    if let Err(e) = create_insole("foot_scan.stl", "custom_insole.3mf") {
+        eprintln!("Error: {}", e);
+    }
+}</code></pre>
+<h2 id="material-recommendations"><a class="header" href="#material-recommendations">Material Recommendations</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Material</th><th>Properties</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>TPU 95A</td><td>Flexible, durable</td><td>Everyday comfort</td></tr>
+<tr><td>TPU 85A</td><td>Softer, more cushion</td><td>Running, high impact</td></tr>
+<tr><td>Nylon</td><td>Rigid, supportive</td><td>Orthotics, arch support</td></tr>
+<tr><td>EVA Foam</td><td>Lightweight, soft</td><td>Athletic insoles</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="common-issues-1"><a class="header" href="#common-issues-1">Common Issues</a></h2>
+<h3 id="hole-in-arch-area"><a class="header" href="#hole-in-arch-area">Hole in Arch Area</a></h3>
+<p><strong>Problem</strong>: Scanner missed the arch.
+<strong>Solution</strong>: Increase <code>fill_holes()</code> tolerance or use manual patching.</p>
+<h3 id="too-many-triangles"><a class="header" href="#too-many-triangles">Too Many Triangles</a></h3>
+<p><strong>Problem</strong>: Slow shell generation, huge files.
+<strong>Solution</strong>: Decimate more aggressively (target 10-20k faces).</p>
+<h3 id="shell-self-intersects"><a class="header" href="#shell-self-intersects">Shell Self-Intersects</a></h3>
+<p><strong>Problem</strong>: Complex geometry causes normal offset issues.
+<strong>Solution</strong>: Use SDF method with smaller voxel size.</p>
+<h2 id="next-steps-12"><a class="header" href="#next-steps-12">Next Steps</a></h2>
+<ul>
+<li><a href="#tutorial-custom-helmet-liners">Helmet Liners</a> - Multi-component shells</li>
+<li><a href="#tutorial-protective-equipment">Protective Equipment</a> - Impact-resistant designs</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tutorial-custom-helmet-liners"><a class="header" href="#tutorial-custom-helmet-liners">Tutorial: Custom Helmet Liners</a></h1>
+<p>This tutorial covers creating custom-fit helmet liners for optimal protection and comfort.</p>
+<h2 id="overview-3"><a class="header" href="#overview-3">Overview</a></h2>
+<p>Helmet liners require:</p>
+<ul>
+<li>Precise fit to head shape</li>
+<li>Impact absorption zones</li>
+<li>Ventilation channels</li>
+<li>Consistent wall thickness</li>
+</ul>
+<pre><code>Head scan    →    Liner shell    →    With ventilation    →    Final liner
+</code></pre>
+<h2 id="step-1-process-head-scan"><a class="header" href="#step-1-process-head-scan">Step 1: Process Head Scan</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline, validate_mesh};
+
+let scan = load_mesh("head_scan.stl")?;
+
+// Head scans are typically larger and noisier than foot scans
+let prepared = Pipeline::new(scan)
+    .weld_vertices(0.2)              // Slightly larger tolerance
+    .remove_small_components(1000)   // Remove more noise
+    .fill_holes()
+    .fix_winding()
+    .decimate_to_target(30_000)      // Keep more detail
+    .finish();
+
+println!("Prepared head scan: {} faces", prepared.mesh.face_count());</code></pre>
+<h2 id="step-2-define-impact-zones"><a class="header" href="#step-2-define-impact-zones">Step 2: Define Impact Zones</a></h2>
+<p>Different areas need different protection levels:</p>
+<pre><code class="language-rust">// Impact zones (conceptual - implement based on your needs)
+struct ImpactZone {
+    name: &amp;'static str,
+    min_thickness_mm: f64,
+    density: &amp;'static str,
+}
+
+let zones = [
+    ImpactZone { name: "crown", min_thickness_mm: 15.0, density: "high" },
+    ImpactZone { name: "temporal", min_thickness_mm: 12.0, density: "medium" },
+    ImpactZone { name: "rear", min_thickness_mm: 10.0, density: "medium" },
+    ImpactZone { name: "front", min_thickness_mm: 8.0, density: "low" },
+];</code></pre>
+<h2 id="step-3-generate-multi-layer-shell"><a class="header" href="#step-3-generate-multi-layer-shell">Step 3: Generate Multi-Layer Shell</a></h2>
+<p>For helmets, you often need multiple shells:</p>
+<pre><code class="language-rust">use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+// Inner comfort layer (soft, thin)
+let comfort_params = ShellParams {
+    wall_thickness_mm: 3.0,
+    wall_generation_method: WallGenerationMethod::Sdf,
+    sdf_voxel_size_mm: 0.5,
+    ..Default::default()
+};
+
+// Outer impact layer (thicker, energy absorbing)
+let impact_params = ShellParams {
+    wall_thickness_mm: 10.0,
+    wall_generation_method: WallGenerationMethod::Sdf,
+    sdf_voxel_size_mm: 1.0,
+    ..Default::default()
+};
+
+let comfort_layer = generate_shell(&amp;prepared.mesh, &amp;comfort_params)?;
+let impact_layer = generate_shell(&amp;comfort_layer, &amp;impact_params)?;</code></pre>
+<h2 id="step-4-add-ventilation"><a class="header" href="#step-4-add-ventilation">Step 4: Add Ventilation</a></h2>
+<p>Ventilation improves comfort but requires careful design:</p>
+<pre><code class="language-rust">use mesh_repair::{boolean_operation, BooleanOp, BooleanParams};
+
+// Create ventilation channels (simplified example)
+fn create_vent_channel(position: [f64; 3], direction: [f64; 3]) -&gt; Mesh {
+    // Create elongated cylinder for vent channel
+    // Implementation depends on your channel design
+    todo!("Create vent channel geometry")
+}
+
+// Subtract vents from liner
+let vent_positions = [
+    ([0.0, 80.0, 0.0], [0.0, 0.0, 1.0]),   // Top vents
+    ([50.0, 60.0, 30.0], [1.0, 0.0, 0.0]), // Side vents
+    // ... more vents
+];
+
+let mut liner_with_vents = impact_layer;
+let params = BooleanParams::default();
+
+for (pos, dir) in &amp;vent_positions {
+    let vent = create_vent_channel(*pos, *dir);
+    liner_with_vents = boolean_operation(&amp;liner_with_vents, &amp;vent, BooleanOp::Difference, &amp;params)?.mesh;
+}</code></pre>
+<h2 id="step-5-validate-structural-integrity"><a class="header" href="#step-5-validate-structural-integrity">Step 5: Validate Structural Integrity</a></h2>
+<p>After adding vents, ensure the liner is still printable:</p>
+<pre><code class="language-rust">let report = validate_mesh(&amp;liner_with_vents);
+
+// Check critical properties
+assert!(report.is_manifold, "Liner must be manifold");
+assert!(report.is_watertight, "Liner must be watertight");
+assert!(report.component_count == 1, "Liner should be single piece");
+
+// Verify minimum wall thickness
+// (would need custom thickness analysis implementation)</code></pre>
+<h2 id="complete-helmet-liner-pipeline"><a class="header" href="#complete-helmet-liner-pipeline">Complete Helmet Liner Pipeline</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+fn create_helmet_liner(
+    scan_path: &amp;str,
+    output_path: &amp;str,
+    comfort_thickness: f64,
+    impact_thickness: f64,
+) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load and prepare scan
+    let scan = load_mesh(scan_path)?;
+    let prepared = Pipeline::new(scan)
+        .weld_vertices(0.2)
+        .remove_small_components(1000)
+        .fill_holes()
+        .fix_winding()
+        .decimate_to_target(30_000)
+        .remesh(1.0)  // Uniform 1mm triangles
+        .finish();
+
+    // Validate base mesh
+    let report = validate_mesh(&amp;prepared.mesh);
+    if !report.is_watertight {
+        return Err("Head scan could not be made watertight".into());
+    }
+
+    // Generate comfort layer
+    let comfort_params = ShellParams {
+        wall_thickness_mm: comfort_thickness,
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 0.5,
+        ..Default::default()
+    };
+    let comfort_layer = generate_shell(&amp;prepared.mesh, &amp;comfort_params)?;
+
+    // Generate impact layer
+    let impact_params = ShellParams {
+        wall_thickness_mm: impact_thickness,
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 1.0,
+        ..Default::default()
+    };
+    let impact_layer = generate_shell(&amp;comfort_layer, &amp;impact_params)?;
+
+    // Export
+    save_mesh(&amp;impact_layer, output_path)?;
+
+    Ok(())
+}</code></pre>
+<h2 id="safety-considerations"><a class="header" href="#safety-considerations">Safety Considerations</a></h2>
+<p><strong>Important</strong>: Custom helmet liners are safety-critical. Always:</p>
+<ol>
+<li><strong>Test impact absorption</strong> according to relevant standards</li>
+<li><strong>Verify fit</strong> with physical prototypes</li>
+<li><strong>Consult with safety engineers</strong></li>
+<li><strong>Follow certification requirements</strong> (DOT, ECE, Snell, etc.)</li>
+</ol>
+<p>This library provides geometry processing - actual safety testing requires specialized equipment and expertise.</p>
+<h2 id="next-steps-13"><a class="header" href="#next-steps-13">Next Steps</a></h2>
+<ul>
+<li><a href="#tutorial-protective-equipment">Protective Equipment</a> - More complex protective gear</li>
+<li><a href="#tutorial-orthotics--medical-devices">Medical/Orthotics</a> - Precision medical applications</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tutorial-protective-equipment"><a class="header" href="#tutorial-protective-equipment">Tutorial: Protective Equipment</a></h1>
+<p>This tutorial covers creating custom protective equipment like shin guards, elbow pads, and body armor.</p>
+<h2 id="overview-4"><a class="header" href="#overview-4">Overview</a></h2>
+<p>Protective equipment requires:</p>
+<ul>
+<li>Body-conforming fit</li>
+<li>Impact-resistant structure</li>
+<li>Flexibility for movement</li>
+<li>Segmented design for articulation</li>
+</ul>
+<h2 id="segmented-shell-design"><a class="header" href="#segmented-shell-design">Segmented Shell Design</a></h2>
+<p>Unlike single-piece shells, protective equipment often needs segments:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline, validate_mesh};
+use mesh_shell::{generate_shell, ShellParams};
+
+// Load body part scan (e.g., shin)
+let scan = load_mesh("shin_scan.stl")?;
+
+// Prepare mesh
+let prepared = Pipeline::new(scan)
+    .weld_vertices(0.1)
+    .remove_small_components(200)
+    .fill_holes()
+    .fix_winding()
+    .decimate_to_target(15_000)
+    .finish();
+
+// Generate protective shell
+let shell_params = ShellParams {
+    wall_thickness_mm: 3.0,  // Thicker for impact
+    ..Default::default()
+};
+
+let shell = generate_shell(&amp;prepared.mesh, &amp;shell_params)?;</code></pre>
+<h2 id="creating-articulated-guards"><a class="header" href="#creating-articulated-guards">Creating Articulated Guards</a></h2>
+<p>For joints (knees, elbows), create segmented designs:</p>
+<pre><code class="language-rust">// Conceptual example of segmented knee guard
+
+struct Segment {
+    mesh: Mesh,
+    hinge_location: [f64; 3],
+}
+
+fn create_knee_guard(knee_scan: &amp;Mesh) -&gt; Vec&lt;Segment&gt; {
+    // Split into segments based on knee anatomy
+    // - Upper thigh segment
+    // - Knee cap segment
+    // - Lower shin segment
+
+    // Each segment would be generated separately
+    // with hinge points for articulation
+
+    todo!("Implement segment splitting")
+}</code></pre>
+<h2 id="lattice-structures-for-impact-absorption"><a class="header" href="#lattice-structures-for-impact-absorption">Lattice Structures for Impact Absorption</a></h2>
+<p>For advanced protection, use lattice infill:</p>
+<pre><code class="language-rust">use mesh_repair::generate_lattice;
+use mesh_repair::LatticeParams;
+
+let lattice_params = LatticeParams {
+    cell_size_mm: 8.0,        // 8mm lattice cells
+    strut_diameter_mm: 1.5,   // 1.5mm struts
+    pattern: LatticePattern::Gyroid,  // Good for impact
+    ..Default::default()
+};
+
+let protective_lattice = generate_lattice(&amp;shell_bounds, &amp;lattice_params)?;
+
+// Combine shell with lattice
+let guard = boolean_operation(&amp;shell, &amp;protective_lattice, BooleanOp::Union, &amp;params)?;</code></pre>
+<h2 id="ventilation-and-weight-reduction"><a class="header" href="#ventilation-and-weight-reduction">Ventilation and Weight Reduction</a></h2>
+<p>Add ventilation while maintaining protection:</p>
+<pre><code class="language-rust">// Create ventilation pattern
+fn create_vent_holes(shell: &amp;Mesh, spacing: f64) -&gt; Vec&lt;Mesh&gt; {
+    // Generate array of small holes in non-critical areas
+    // Avoid impact zones
+    todo!()
+}
+
+// Subtract vents from shell
+for vent in create_vent_holes(&amp;shell, 15.0) {
+    shell = boolean_operation(&amp;shell, &amp;vent, BooleanOp::Difference, &amp;params)?.mesh;
+}</code></pre>
+<h2 id="complete-shin-guard-example"><a class="header" href="#complete-shin-guard-example">Complete Shin Guard Example</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+fn create_shin_guard(
+    scan_path: &amp;str,
+    output_path: &amp;str,
+) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load scan
+    let scan = load_mesh(scan_path)?;
+    println!("Loaded shin scan: {} faces", scan.face_count());
+
+    // Prepare mesh
+    let prepared = Pipeline::new(scan)
+        .weld_vertices(0.1)
+        .remove_small_components(200)
+        .fill_holes()
+        .fix_winding()
+        .decimate_to_target(10_000)
+        .finish();
+
+    // Validate
+    let report = validate_mesh(&amp;prepared.mesh);
+    if !report.is_watertight {
+        return Err("Scan could not be made watertight".into());
+    }
+
+    // Generate protective shell
+    // Use thicker walls for impact protection
+    let shell_params = ShellParams {
+        wall_thickness_mm: 4.0,  // 4mm for protection
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 0.5,
+        ..Default::default()
+    };
+
+    let shell = generate_shell(&amp;prepared.mesh, &amp;shell_params)?;
+
+    // Final validation
+    let final_report = validate_mesh(&amp;shell);
+    if !final_report.is_printable() {
+        return Err("Generated shell is not printable".into());
+    }
+
+    // Export
+    save_mesh(&amp;shell, output_path)?;
+    println!("Created shin guard: {}", output_path);
+
+    Ok(())
+}</code></pre>
+<h2 id="material-selection-for-protection"><a class="header" href="#material-selection-for-protection">Material Selection for Protection</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Material</th><th>Impact Absorption</th><th>Flexibility</th><th>Weight</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>TPU 95A</td><td>Good</td><td>High</td><td>Light</td><td>General protection</td></tr>
+<tr><td>Nylon 12</td><td>Excellent</td><td>Low</td><td>Medium</td><td>Hard shell guards</td></tr>
+<tr><td>PETG</td><td>Good</td><td>Medium</td><td>Medium</td><td>Budget option</td></tr>
+<tr><td>PA12 (SLS)</td><td>Excellent</td><td>Medium</td><td>Light</td><td>Professional gear</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="safety-testing"><a class="header" href="#safety-testing">Safety Testing</a></h2>
+<p><strong>Critical</strong>: All protective equipment must be tested:</p>
+<ol>
+<li><strong>Impact testing</strong> per relevant standards</li>
+<li><strong>Coverage verification</strong> for protected areas</li>
+<li><strong>Fit testing</strong> for secure attachment</li>
+<li><strong>Durability testing</strong> over repeated use</li>
+</ol>
+<h2 id="next-steps-14"><a class="header" href="#next-steps-14">Next Steps</a></h2>
+<ul>
+<li><a href="#tutorial-orthotics--medical-devices">Medical/Orthotics</a> - Precision medical applications</li>
+<li><a href="#example-gallery">Example Gallery</a> - More examples</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tutorial-orthotics--medical-devices"><a class="header" href="#tutorial-orthotics--medical-devices">Tutorial: Orthotics &amp; Medical Devices</a></h1>
+<p>This tutorial covers precision requirements for medical applications including orthotics, prosthetics, and custom medical devices.</p>
+<h2 id="medical-application-requirements"><a class="header" href="#medical-application-requirements">Medical Application Requirements</a></h2>
+<p>Medical devices have strict requirements:</p>
+<ul>
+<li><strong>Dimensional accuracy</strong>: ±0.5mm or better</li>
+<li><strong>Surface quality</strong>: Smooth, no sharp edges</li>
+<li><strong>Material biocompatibility</strong>: Must be certified</li>
+<li><strong>Documentation</strong>: Full traceability</li>
+</ul>
+<h2 id="precision-scan-processing"><a class="header" href="#precision-scan-processing">Precision Scan Processing</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, Pipeline, validate_mesh};
+
+fn process_medical_scan(scan_path: &amp;str) -&gt; Result&lt;Mesh, Box&lt;dyn std::error::Error&gt;&gt; {
+    let scan = load_mesh(scan_path)?;
+
+    // Use tighter tolerances for medical applications
+    let prepared = Pipeline::new(scan)
+        // Very tight weld tolerance - preserve accuracy
+        .weld_vertices(0.01)  // 0.01mm = 10 microns
+
+        // Remove only definite noise
+        .remove_small_components(2000)
+
+        // Careful hole filling
+        .fill_holes()
+
+        // Fix normals
+        .fix_winding()
+
+        // Minimal decimation to preserve accuracy
+        .decimate_to_target(50_000)
+
+        // High-quality remesh for smooth surface
+        .remesh(0.3)  // 0.3mm edges
+
+        .finish();
+
+    // Rigorous validation
+    let report = validate_mesh(&amp;prepared.mesh);
+    if !report.is_manifold || !report.is_watertight {
+        return Err("Medical scan does not meet quality requirements".into());
+    }
+
+    Ok(prepared.mesh)
+}</code></pre>
+<h2 id="orthotic-insole-with-arch-support"><a class="header" href="#orthotic-insole-with-arch-support">Orthotic Insole with Arch Support</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+fn create_orthotic_insole(
+    foot_scan_path: &amp;str,
+    output_path: &amp;str,
+    arch_support_height: f64,  // mm of arch support
+) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load and prepare foot scan
+    let scan = load_mesh(foot_scan_path)?;
+
+    let prepared = Pipeline::new(scan)
+        .weld_vertices(0.01)
+        .remove_small_components(1000)
+        .fill_holes()
+        .fix_winding()
+        .decimate_to_target(30_000)
+        .remesh(0.5)
+        .finish();
+
+    // Verify dimensions match expected foot size
+    if let Some((min, max)) = prepared.mesh.bounds() {
+        let length = max.y - min.y;
+        let width = max.x - min.x;
+        println!("Foot dimensions: {:.1}mm x {:.1}mm", length, width);
+
+        // Sanity check
+        if length &lt; 200.0 || length &gt; 350.0 {
+            println!("Warning: Unusual foot length");
+        }
+    }
+
+    // Generate orthotic shell
+    let shell_params = ShellParams {
+        wall_thickness_mm: 2.5,  // Appropriate for rigid orthotics
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 0.25,  // High resolution for medical
+        ..Default::default()
+    };
+
+    let orthotic = generate_shell(&amp;prepared.mesh, &amp;shell_params)?;
+
+    // Final medical-grade validation
+    validate_medical_device(&amp;orthotic)?;
+
+    save_mesh(&amp;orthotic, output_path)?;
+    Ok(())
+}
+
+fn validate_medical_device(mesh: &amp;Mesh) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let report = validate_mesh(mesh);
+
+    // Strict requirements
+    if !report.is_manifold {
+        return Err("Medical device must be manifold".into());
+    }
+    if !report.is_watertight {
+        return Err("Medical device must be watertight".into());
+    }
+    if report.degenerate_face_count &gt; 0 {
+        return Err("Medical device cannot have degenerate faces".into());
+    }
+    if report.component_count != 1 {
+        return Err("Medical device must be single component".into());
+    }
+
+    Ok(())
+}</code></pre>
+<h2 id="prosthetic-socket-design"><a class="header" href="#prosthetic-socket-design">Prosthetic Socket Design</a></h2>
+<pre><code class="language-rust">// Prosthetic sockets require precise fit and load distribution
+
+fn create_prosthetic_socket(
+    residual_limb_scan: &amp;Mesh,
+    socket_thickness: f64,
+) -&gt; Result&lt;Mesh, Box&lt;dyn std::error::Error&gt;&gt; {
+    // 1. Prepare scan with minimal modification
+    let prepared = Pipeline::new(residual_limb_scan.clone())
+        .weld_vertices(0.01)
+        .fill_holes()
+        .fix_winding()
+        .finish();
+
+    // 2. Apply pressure relief modifications
+    // (This would be custom to your prosthetic design methodology)
+
+    // 3. Generate socket shell
+    let shell_params = ShellParams {
+        wall_thickness_mm: socket_thickness,
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 0.2,  // Very high resolution
+        ..Default::default()
+    };
+
+    let socket = generate_shell(&amp;prepared.mesh, &amp;shell_params)?;
+
+    // 4. Add structural features
+    // - Suspension mechanism
+    // - Alignment features
+    // - Trim line
+
+    Ok(socket)
+}</code></pre>
+<h2 id="regulatory-considerations"><a class="header" href="#regulatory-considerations">Regulatory Considerations</a></h2>
+<p><strong>Important</strong>: Medical devices are heavily regulated.</p>
+<h3 id="fda-united-states"><a class="header" href="#fda-united-states">FDA (United States)</a></h3>
+<ul>
+<li>Class I, II, or III depending on risk</li>
+<li>510(k) clearance or PMA approval may be required</li>
+<li>Quality Management System (21 CFR Part 820)</li>
+</ul>
+<h3 id="ce-marking-europe"><a class="header" href="#ce-marking-europe">CE Marking (Europe)</a></h3>
+<ul>
+<li>Medical Device Regulation (MDR) 2017/745</li>
+<li>Conformity assessment required</li>
+<li>Technical documentation</li>
+</ul>
+<h3 id="iso-standards"><a class="header" href="#iso-standards">ISO Standards</a></h3>
+<ul>
+<li>ISO 13485: Quality Management for Medical Devices</li>
+<li>ISO 10993: Biocompatibility</li>
+<li>ISO 14708: Implants (if applicable)</li>
+</ul>
+<h2 id="documentation-requirements"><a class="header" href="#documentation-requirements">Documentation Requirements</a></h2>
+<p>For medical applications, maintain:</p>
+<pre><code class="language-rust">struct MedicalDeviceRecord {
+    patient_id: String,
+    scan_date: DateTime,
+    scan_parameters: ScanParams,
+    processing_parameters: ProcessingParams,
+    validation_results: ValidationReport,
+    output_file_hash: String,
+    operator_id: String,
+}
+
+// Log all processing parameters
+fn log_medical_processing(
+    record: &amp;MedicalDeviceRecord,
+    log_path: &amp;str,
+) -&gt; Result&lt;(), std::io::Error&gt; {
+    // Write to immutable audit log
+    // Include all parameters for reproducibility
+    todo!()
+}</code></pre>
+<h2 id="quality-control-checklist"><a class="header" href="#quality-control-checklist">Quality Control Checklist</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"> Scan captured complete anatomy</li>
+<li><input disabled="" type="checkbox"> No holes or missing data</li>
+<li><input disabled="" type="checkbox"> Dimensional accuracy verified</li>
+<li><input disabled="" type="checkbox"> Surface quality acceptable</li>
+<li><input disabled="" type="checkbox"> Shell wall thickness uniform</li>
+<li><input disabled="" type="checkbox"> No self-intersections</li>
+<li><input disabled="" type="checkbox"> Single connected component</li>
+<li><input disabled="" type="checkbox"> Final dimensions match prescription</li>
+</ul>
+<h2 id="next-steps-15"><a class="header" href="#next-steps-15">Next Steps</a></h2>
+<ul>
+<li><a href="#example-gallery">Example Gallery</a> - Code examples</li>
+<li><a href="#uperformance">Best Practices</a> - Optimization tips</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="example-gallery"><a class="header" href="#example-gallery">Example Gallery</a></h1>
+<p>Curated examples demonstrating common mesh processing workflows.</p>
+<h2 id="basic-examples"><a class="header" href="#basic-examples">Basic Examples</a></h2>
+<h3 id="load-validate-save"><a class="header" href="#load-validate-save">Load, Validate, Save</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, validate_mesh};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load any supported format
+    let mesh = load_mesh("input.stl")?;
+
+    // Validate
+    let report = validate_mesh(&amp;mesh);
+    println!("Vertices: {}", report.vertex_count);
+    println!("Faces: {}", report.face_count);
+    println!("Manifold: {}", report.is_manifold);
+    println!("Watertight: {}", report.is_watertight);
+
+    // Save (format from extension)
+    save_mesh(&amp;mesh, "output.obj")?;
+
+    Ok(())
+}</code></pre>
+<h3 id="quick-repair"><a class="header" href="#quick-repair">Quick Repair</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, weld_vertices, fill_holes, fix_winding_order};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut mesh = load_mesh("broken.stl")?;
+
+    // Basic repair sequence
+    weld_vertices(&amp;mut mesh, 1e-6);
+    fill_holes(&amp;mut mesh)?;
+    fix_winding_order(&amp;mut mesh)?;
+
+    save_mesh(&amp;mesh, "fixed.stl")?;
+    Ok(())
+}</code></pre>
+<h3 id="simplify-high-poly-mesh"><a class="header" href="#simplify-high-poly-mesh">Simplify High-Poly Mesh</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, decimate_mesh, DecimateParams};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("high_poly.stl")?;
+    println!("Original: {} faces", mesh.face_count());
+
+    // Reduce to 10,000 triangles
+    let params = DecimateParams::with_target_triangles(10_000);
+    let result = decimate_mesh(&amp;mesh, &amp;params);
+
+    println!("Simplified: {} faces", result.mesh.face_count());
+    save_mesh(&amp;result.mesh, "low_poly.stl")?;
+
+    Ok(())
+}</code></pre>
+<h2 id="pipeline-examples"><a class="header" href="#pipeline-examples">Pipeline Examples</a></h2>
+<h3 id="scan-cleanup-pipeline-1"><a class="header" href="#scan-cleanup-pipeline-1">Scan Cleanup Pipeline</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let scan = load_mesh("raw_scan.stl")?;
+
+    let result = Pipeline::new(scan)
+        .weld_vertices(1e-6)
+        .remove_degenerate_triangles(1e-10)
+        .remove_small_components(100)
+        .fill_holes()
+        .fix_winding()
+        .validate()
+        .finish();
+
+    let report = validate_mesh(&amp;result.mesh);
+    if report.is_printable() {
+        println!("Scan is ready for use!");
+        save_mesh(&amp;result.mesh, "clean_scan.stl")?;
+    }
+
+    Ok(())
+}</code></pre>
+<h3 id="optimize-for-real-time-display"><a class="header" href="#optimize-for-real-time-display">Optimize for Real-Time Display</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("detailed_model.stl")?;
+    println!("Original: {} faces", mesh.face_count());
+
+    // Create LOD versions
+    let lod0 = Pipeline::new(mesh.clone())
+        .decimate_to_ratio(0.5)
+        .finish();
+
+    let lod1 = Pipeline::new(mesh.clone())
+        .decimate_to_ratio(0.25)
+        .finish();
+
+    let lod2 = Pipeline::new(mesh.clone())
+        .decimate_to_ratio(0.1)
+        .finish();
+
+    println!("LOD0: {} faces", lod0.mesh.face_count());
+    println!("LOD1: {} faces", lod1.mesh.face_count());
+    println!("LOD2: {} faces", lod2.mesh.face_count());
+
+    save_mesh(&amp;lod0.mesh, "model_lod0.stl")?;
+    save_mesh(&amp;lod1.mesh, "model_lod1.stl")?;
+    save_mesh(&amp;lod2.mesh, "model_lod2.stl")?;
+
+    Ok(())
+}</code></pre>
+<h2 id="shell-generation-examples"><a class="header" href="#shell-generation-examples">Shell Generation Examples</a></h2>
+<h3 id="basic-shell"><a class="header" href="#basic-shell">Basic Shell</a></h3>
+<pre><code class="language-rust">use mesh_repair::load_mesh;
+use mesh_shell::{generate_shell, ShellParams};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let solid = load_mesh("solid_part.stl")?;
+
+    let params = ShellParams {
+        wall_thickness_mm: 2.0,
+        ..Default::default()
+    };
+
+    let shell = generate_shell(&amp;solid, &amp;params)?;
+    println!("Shell: {} faces", shell.face_count());
+
+    Ok(())
+}</code></pre>
+<h3 id="shell-with-sdf-method"><a class="header" href="#shell-with-sdf-method">Shell with SDF Method</a></h3>
+<pre><code class="language-rust">use mesh_repair::load_mesh;
+use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let solid = load_mesh("complex_shape.stl")?;
+
+    let params = ShellParams {
+        wall_thickness_mm: 2.0,
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 0.5,
+        ..Default::default()
+    };
+
+    let shell = generate_shell(&amp;solid, &amp;params)?;
+    println!("Shell: {} faces", shell.face_count());
+
+    Ok(())
+}</code></pre>
+<h2 id="boolean-operations-1"><a class="header" href="#boolean-operations-1">Boolean Operations</a></h2>
+<h3 id="combine-two-parts"><a class="header" href="#combine-two-parts">Combine Two Parts</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, boolean_operation, BooleanOp, BooleanParams};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let part_a = load_mesh("part_a.stl")?;
+    let part_b = load_mesh("part_b.stl")?;
+
+    let params = BooleanParams::default();
+    let combined = boolean_operation(&amp;part_a, &amp;part_b, BooleanOp::Union, &amp;params)?;
+
+    save_mesh(&amp;combined.mesh, "combined.stl")?;
+    Ok(())
+}</code></pre>
+<h3 id="create-cutout"><a class="header" href="#create-cutout">Create Cutout</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, boolean_operation, BooleanOp, BooleanParams};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let solid = load_mesh("solid.stl")?;
+    let cutter = load_mesh("hole_shape.stl")?;
+
+    let params = BooleanParams::default();
+    let with_hole = boolean_operation(&amp;solid, &amp;cutter, BooleanOp::Difference, &amp;params)?;
+
+    save_mesh(&amp;with_hole.mesh, "with_cutout.stl")?;
+    Ok(())
+}</code></pre>
+<h2 id="analysis-examples"><a class="header" href="#analysis-examples">Analysis Examples</a></h2>
+<h3 id="mesh-statistics"><a class="header" href="#mesh-statistics">Mesh Statistics</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("model.stl")?;
+
+    println!("=== Mesh Statistics ===");
+    println!("Vertices: {}", mesh.vertex_count());
+    println!("Faces: {}", mesh.face_count());
+
+    if let Some((min, max)) = mesh.bounds() {
+        println!("Bounds:");
+        println!("  Min: ({:.2}, {:.2}, {:.2})", min.x, min.y, min.z);
+        println!("  Max: ({:.2}, {:.2}, {:.2})", max.x, max.y, max.z);
+        println!("  Size: {:.2} x {:.2} x {:.2}",
+            max.x - min.x, max.y - min.y, max.z - min.z);
+    }
+
+    println!("Surface Area: {:.2} mm²", mesh.surface_area());
+    println!("Volume: {:.2} mm³", mesh.volume().abs());
+
+    let report = validate_mesh(&amp;mesh);
+    println!("\n=== Topology ===");
+    println!("Manifold: {}", report.is_manifold);
+    println!("Watertight: {}", report.is_watertight);
+    println!("Components: {}", report.component_count);
+    println!("Boundary Edges: {}", report.boundary_edge_count);
+    println!("Printable: {}", report.is_printable());
+
+    Ok(())
+}</code></pre>
+<h3 id="component-analysis-1"><a class="header" href="#component-analysis-1">Component Analysis</a></h3>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, find_connected_components};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh("multi_part.stl")?;
+
+    let analysis = find_connected_components(&amp;mesh);
+
+    println!("Found {} components:", analysis.components.len());
+    for (i, comp) in analysis.components.iter().enumerate() {
+        println!("  Component {}: {} faces", i, comp.face_count);
+    }
+
+    Ok(())
+}</code></pre>
+<h2 id="more-examples"><a class="header" href="#more-examples">More Examples</a></h2>
+<ul>
+<li><a href="#basic-repair-example">Basic Repair</a> - Step-by-step repair guide</li>
+<li><a href="#scan-to-shell-example">Scan to Shell</a> - Complete custom-fit workflow</li>
+<li><a href="#batch-processing-example">Batch Processing</a> - Process multiple files</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="basic-repair-example"><a class="header" href="#basic-repair-example">Basic Repair Example</a></h1>
+<p>Step-by-step guide to repairing a mesh with common issues.</p>
+<h2 id="the-problem-mesh"><a class="header" href="#the-problem-mesh">The Problem Mesh</a></h2>
+<p>Let’s work with a mesh that has typical issues:</p>
+<ul>
+<li>Duplicate vertices (from STL import)</li>
+<li>Small holes</li>
+<li>Inconsistent winding</li>
+<li>Scanner noise (small disconnected pieces)</li>
+</ul>
+<h2 id="step-1-load-and-analyze"><a class="header" href="#step-1-load-and-analyze">Step 1: Load and Analyze</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+
+let mesh = load_mesh("problem_mesh.stl")?;
+
+println!("Initial state:");
+println!("  Vertices: {}", mesh.vertex_count());
+println!("  Faces: {}", mesh.face_count());
+
+let report = validate_mesh(&amp;mesh);
+println!("  Manifold: {}", report.is_manifold);
+println!("  Watertight: {}", report.is_watertight);
+println!("  Boundary edges: {}", report.boundary_edge_count);
+println!("  Components: {}", report.component_count);
+println!("  Degenerate faces: {}", report.degenerate_face_count);</code></pre>
+<p>Example output:</p>
+<pre><code>Initial state:
+  Vertices: 15432
+  Faces: 5144
+  Manifold: true
+  Watertight: false
+  Boundary edges: 156
+  Components: 12
+  Degenerate faces: 3
+</code></pre>
+<h2 id="step-2-weld-vertices"><a class="header" href="#step-2-weld-vertices">Step 2: Weld Vertices</a></h2>
+<p>STL files store each triangle independently, creating duplicate vertices:</p>
+<pre><code class="language-rust">use mesh_repair::weld_vertices;
+
+let original_verts = mesh.vertex_count();
+weld_vertices(&amp;mut mesh, 1e-6);  // 1 micron tolerance
+
+println!("After welding:");
+println!("  Vertices: {} (was {})", mesh.vertex_count(), original_verts);</code></pre>
+<p>Output:</p>
+<pre><code>After welding:
+  Vertices: 2573 (was 15432)
+</code></pre>
+<h2 id="step-3-remove-degenerate-faces"><a class="header" href="#step-3-remove-degenerate-faces">Step 3: Remove Degenerate Faces</a></h2>
+<p>Zero-area triangles cause problems:</p>
+<pre><code class="language-rust">use mesh_repair::remove_degenerate_triangles;
+
+remove_degenerate_triangles(&amp;mut mesh, 1e-10);
+
+let report = validate_mesh(&amp;mesh);
+println!("After removing degenerates:");
+println!("  Degenerate faces: {}", report.degenerate_face_count);</code></pre>
+<h2 id="step-4-remove-small-components"><a class="header" href="#step-4-remove-small-components">Step 4: Remove Small Components</a></h2>
+<p>Scanner noise creates tiny disconnected pieces:</p>
+<pre><code class="language-rust">use mesh_repair::{remove_small_components, validate_mesh};
+
+let removed = remove_small_components(&amp;mut mesh, 100);
+
+println!("Removed {} small components", removed);
+
+let report = validate_mesh(&amp;mesh);
+println!("  Remaining components: {}", report.component_count);</code></pre>
+<p>Output:</p>
+<pre><code>Removed 11 small components
+  Remaining components: 1
+</code></pre>
+<h2 id="step-5-fill-holes"><a class="header" href="#step-5-fill-holes">Step 5: Fill Holes</a></h2>
+<p>Close any gaps in the surface:</p>
+<pre><code class="language-rust">use mesh_repair::fill_holes;
+
+fill_holes(&amp;mut mesh)?;
+
+let report = validate_mesh(&amp;mesh);
+println!("After filling holes:");
+println!("  Boundary edges: {}", report.boundary_edge_count);
+println!("  Watertight: {}", report.is_watertight);</code></pre>
+<p>Output:</p>
+<pre><code>After filling holes:
+  Boundary edges: 0
+  Watertight: true
+</code></pre>
+<h2 id="step-6-fix-winding-order"><a class="header" href="#step-6-fix-winding-order">Step 6: Fix Winding Order</a></h2>
+<p>Ensure consistent face orientation:</p>
+<pre><code class="language-rust">use mesh_repair::fix_winding_order;
+
+fix_winding_order(&amp;mut mesh)?;</code></pre>
+<h2 id="step-7-final-validation"><a class="header" href="#step-7-final-validation">Step 7: Final Validation</a></h2>
+<pre><code class="language-rust">let report = validate_mesh(&amp;mesh);
+
+println!("\nFinal state:");
+println!("  Vertices: {}", report.vertex_count);
+println!("  Faces: {}", report.face_count);
+println!("  Manifold: {}", report.is_manifold);
+println!("  Watertight: {}", report.is_watertight);
+println!("  Printable: {}", report.is_printable());</code></pre>
+<p>Output:</p>
+<pre><code>Final state:
+  Vertices: 2561
+  Faces: 5118
+  Manifold: true
+  Watertight: true
+  Printable: true
+</code></pre>
+<h2 id="complete-code"><a class="header" href="#complete-code">Complete Code</a></h2>
+<pre><code class="language-rust">use mesh_repair::{
+    load_mesh, save_mesh, validate_mesh,
+    weld_vertices, remove_degenerate_triangles,
+    remove_small_components, fill_holes, fix_winding_order,
+};
+
+fn repair_mesh(input: &amp;str, output: &amp;str) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load
+    let mut mesh = load_mesh(input)?;
+    println!("Loaded: {} vertices, {} faces", mesh.vertex_count(), mesh.face_count());
+
+    // Repair sequence
+    weld_vertices(&amp;mut mesh, 1e-6);
+    remove_degenerate_triangles(&amp;mut mesh, 1e-10);
+    remove_small_components(&amp;mut mesh, 100);
+    fill_holes(&amp;mut mesh)?;
+    fix_winding_order(&amp;mut mesh)?;
+
+    // Validate
+    let report = validate_mesh(&amp;mesh);
+    if report.is_printable() {
+        println!("Repair successful!");
+        save_mesh(&amp;mesh, output)?;
+        println!("Saved to: {}", output);
+    } else {
+        println!("Warning: Mesh still has issues");
+    }
+
+    Ok(())
+}
+
+fn main() {
+    if let Err(e) = repair_mesh("broken.stl", "fixed.stl") {
+        eprintln!("Error: {}", e);
+    }
+}</code></pre>
+<h2 id="using-the-pipeline"><a class="header" href="#using-the-pipeline">Using the Pipeline</a></h2>
+<p>The same repairs using the Pipeline API:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+
+fn repair_with_pipeline(input: &amp;str, output: &amp;str) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh(input)?;
+
+    let result = Pipeline::new(mesh)
+        .weld_vertices(1e-6)
+        .remove_degenerate_triangles(1e-10)
+        .remove_small_components(100)
+        .fill_holes()
+        .fix_winding()
+        .validate()
+        .finish();
+
+    let report = validate_mesh(&amp;result.mesh);
+    if report.is_printable() {
+        save_mesh(&amp;result.mesh, output)?;
+    }
+
+    Ok(())
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="scan-to-shell-example"><a class="header" href="#scan-to-shell-example">Scan to Shell Example</a></h1>
+<p>Complete workflow from 3D scan to manufacturable shell.</p>
+<h2 id="overview-5"><a class="header" href="#overview-5">Overview</a></h2>
+<p>This example demonstrates the full custom-fit product pipeline:</p>
+<ol>
+<li>Load raw 3D scan</li>
+<li>Clean up scan artifacts</li>
+<li>Validate mesh quality</li>
+<li>Generate hollow shell</li>
+<li>Export for manufacturing</li>
+</ol>
+<h2 id="complete-implementation"><a class="header" href="#complete-implementation">Complete Implementation</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+use mesh_shell::{generate_shell, ShellParams, WallGenerationMethod};
+
+/// Process a 3D scan into a manufacturable shell.
+fn scan_to_shell(
+    scan_path: &amp;str,
+    output_path: &amp;str,
+    wall_thickness: f64,
+) -&gt; Result&lt;ShellResult, Box&lt;dyn std::error::Error&gt;&gt; {
+    println!("=== Scan to Shell Pipeline ===\n");
+
+    // Step 1: Load scan
+    println!("1. Loading scan: {}", scan_path);
+    let scan = load_mesh(scan_path)?;
+    println!("   Loaded: {} vertices, {} faces", scan.vertex_count(), scan.face_count());
+
+    // Step 2: Initial validation
+    println!("\n2. Initial validation");
+    let initial_report = validate_mesh(&amp;scan);
+    println!("   Watertight: {}", initial_report.is_watertight);
+    println!("   Components: {}", initial_report.component_count);
+    println!("   Boundary edges: {}", initial_report.boundary_edge_count);
+
+    // Step 3: Repair pipeline
+    println!("\n3. Repairing scan");
+    let repaired = Pipeline::new(scan)
+        .weld_vertices(0.1)              // 0.1mm tolerance for scan data
+        .remove_degenerate_triangles(1e-10)
+        .remove_small_components(200)    // Remove noise
+        .fill_holes()
+        .fix_winding()
+        .decimate_to_target(25_000)      // Reasonable resolution
+        .finish();
+
+    println!("   After repair: {} faces", repaired.mesh.face_count());
+
+    // Step 4: Validate repaired mesh
+    println!("\n4. Post-repair validation");
+    let repair_report = validate_mesh(&amp;repaired.mesh);
+
+    if !repair_report.is_watertight {
+        return Err("Scan could not be made watertight".into());
+    }
+    if !repair_report.is_manifold {
+        return Err("Scan has non-manifold geometry".into());
+    }
+
+    println!("   Watertight: {}", repair_report.is_watertight);
+    println!("   Manifold: {}", repair_report.is_manifold);
+
+    // Step 5: Generate shell
+    println!("\n5. Generating shell");
+    println!("   Wall thickness: {}mm", wall_thickness);
+
+    let shell_params = ShellParams {
+        wall_thickness_mm: wall_thickness,
+        wall_generation_method: WallGenerationMethod::Sdf,
+        sdf_voxel_size_mm: 0.5,
+        ..Default::default()
+    };
+
+    let shell = generate_shell(&amp;repaired.mesh, &amp;shell_params)?;
+    println!("   Shell generated: {} faces", shell.face_count());
+
+    // Step 6: Final validation
+    println!("\n6. Final validation");
+    let final_report = validate_mesh(&amp;shell);
+
+    if !final_report.is_printable() {
+        println!("   WARNING: Shell may not be printable");
+    } else {
+        println!("   Shell is ready for manufacturing!");
+    }
+
+    // Step 7: Export
+    println!("\n7. Exporting");
+    save_mesh(&amp;shell, output_path)?;
+    println!("   Saved to: {}", output_path);
+
+    // Return results
+    Ok(ShellResult {
+        original_faces: scan.face_count(),
+        repaired_faces: repaired.mesh.face_count(),
+        shell_faces: shell.face_count(),
+        wall_thickness,
+        is_printable: final_report.is_printable(),
+    })
+}
+
+struct ShellResult {
+    original_faces: usize,
+    repaired_faces: usize,
+    shell_faces: usize,
+    wall_thickness: f64,
+    is_printable: bool,
+}
+
+fn main() {
+    match scan_to_shell("foot_scan.stl", "custom_insole.3mf", 2.0) {
+        Ok(result) =&gt; {
+            println!("\n=== Summary ===");
+            println!("Original faces: {}", result.original_faces);
+            println!("Repaired faces: {}", result.repaired_faces);
+            println!("Shell faces: {}", result.shell_faces);
+            println!("Wall thickness: {}mm", result.wall_thickness);
+            println!("Ready for printing: {}", result.is_printable);
+        }
+        Err(e) =&gt; {
+            eprintln!("Pipeline failed: {}", e);
+            std::process::exit(1);
+        }
+    }
+}</code></pre>
+<h2 id="example-output"><a class="header" href="#example-output">Example Output</a></h2>
+<pre><code>=== Scan to Shell Pipeline ===
+
+1. Loading scan: foot_scan.stl
+   Loaded: 156432 vertices, 52144 faces
+
+2. Initial validation
+   Watertight: false
+   Components: 8
+   Boundary edges: 234
+
+3. Repairing scan
+   After repair: 25000 faces
+
+4. Post-repair validation
+   Watertight: true
+   Manifold: true
+
+5. Generating shell
+   Wall thickness: 2mm
+   Shell generated: 48234 faces
+
+6. Final validation
+   Shell is ready for manufacturing!
+
+7. Exporting
+   Saved to: custom_insole.3mf
+
+=== Summary ===
+Original faces: 52144
+Repaired faces: 25000
+Shell faces: 48234
+Wall thickness: 2mm
+Ready for printing: true
+</code></pre>
+<h2 id="cli-version"><a class="header" href="#cli-version">CLI Version</a></h2>
+<p>Achieve similar results with the command line:</p>
+<pre><code class="language-bash"># Repair scan
+mesh-cli repair foot_scan.stl -o repaired.stl \
+    --weld-tolerance 0.1 \
+    --remove-small 200 \
+    --fill-holes
+
+# Decimate
+mesh-cli decimate repaired.stl -o decimated.stl \
+    --target 25000
+
+# Generate shell
+mesh-cli shell decimated.stl -o insole.3mf \
+    --thickness 2.0 \
+    --method sdf
+</code></pre>
+<h2 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h2>
+<p>For repeatable processing, use a config file:</p>
+<pre><code class="language-yaml"># insole_config.yaml
+repair:
+  weld_tolerance: 0.1
+  remove_small_components: 200
+  fill_holes: true
+  fix_winding: true
+
+decimate:
+  target_triangles: 25000
+
+shell:
+  wall_thickness_mm: 2.0
+  method: sdf
+  voxel_size_mm: 0.5
+
+output:
+  format: 3mf
+</code></pre>
+<h2 id="error-handling-3"><a class="header" href="#error-handling-3">Error Handling</a></h2>
+<p>Handle common failures gracefully:</p>
+<pre><code class="language-rust">fn process_scan(path: &amp;str) -&gt; Result&lt;Mesh, ProcessError&gt; {
+    let scan = load_mesh(path).map_err(|e| ProcessError::LoadFailed(e.to_string()))?;
+
+    let repaired = Pipeline::new(scan)
+        .weld_vertices(0.1)
+        .fill_holes()
+        .fix_winding()
+        .finish();
+
+    let report = validate_mesh(&amp;repaired.mesh);
+    if !report.is_watertight {
+        return Err(ProcessError::NotWatertight);
+    }
+
+    let shell_params = ShellParams {
+        wall_thickness_mm: 2.0,
+        ..Default::default()
+    };
+
+    generate_shell(&amp;repaired.mesh, &amp;shell_params)
+        .map_err(|e| ProcessError::ShellFailed(e.to_string()))
+}
+
+enum ProcessError {
+    LoadFailed(String),
+    NotWatertight,
+    ShellFailed(String),
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="batch-processing-example"><a class="header" href="#batch-processing-example">Batch Processing Example</a></h1>
+<p>Process multiple mesh files efficiently.</p>
+<h2 id="basic-batch-processing"><a class="header" href="#basic-batch-processing">Basic Batch Processing</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline, validate_mesh};
+use std::path::Path;
+
+fn process_directory(input_dir: &amp;str, output_dir: &amp;str) -&gt; Result&lt;BatchResult, std::io::Error&gt; {
+    let mut results = BatchResult::default();
+
+    // Create output directory
+    std::fs::create_dir_all(output_dir)?;
+
+    // Find all STL files
+    for entry in std::fs::read_dir(input_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.extension().map(|e| e == "stl").unwrap_or(false) {
+            match process_single_file(&amp;path, output_dir) {
+                Ok(_) =&gt; results.succeeded += 1,
+                Err(e) =&gt; {
+                    eprintln!("Failed to process {:?}: {}", path, e);
+                    results.failed += 1;
+                }
+            }
+        }
+    }
+
+    Ok(results)
+}
+
+fn process_single_file(input: &amp;Path, output_dir: &amp;str) -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mesh = load_mesh(input)?;
+
+    let result = Pipeline::new(mesh)
+        .weld_vertices(1e-6)
+        .fill_holes()
+        .fix_winding()
+        .decimate_to_ratio(0.5)
+        .finish();
+
+    let output_name = input.file_stem().unwrap().to_string_lossy();
+    let output_path = format!("{}/{}_processed.stl", output_dir, output_name);
+
+    save_mesh(&amp;result.mesh, &amp;output_path)?;
+    println!("Processed: {:?} -&gt; {}", input, output_path);
+
+    Ok(())
+}
+
+#[derive(Default)]
+struct BatchResult {
+    succeeded: usize,
+    failed: usize,
+}
+
+fn main() -&gt; Result&lt;(), std::io::Error&gt; {
+    let result = process_directory("./input_meshes", "./output_meshes")?;
+    println!("\nBatch complete: {} succeeded, {} failed", result.succeeded, result.failed);
+    Ok(())
+}</code></pre>
+<h2 id="parallel-processing-with-rayon"><a class="header" href="#parallel-processing-with-rayon">Parallel Processing with Rayon</a></h2>
+<p>For faster processing of many files:</p>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, save_mesh, Pipeline};
+use rayon::prelude::*;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+fn process_parallel(input_dir: &amp;str, output_dir: &amp;str) {
+    std::fs::create_dir_all(output_dir).unwrap();
+
+    // Collect all STL files
+    let files: Vec&lt;PathBuf&gt; = std::fs::read_dir(input_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension().map(|e| e == "stl").unwrap_or(false))
+        .collect();
+
+    let total = files.len();
+    let processed = AtomicUsize::new(0);
+    let failed = AtomicUsize::new(0);
+
+    // Process in parallel
+    files.par_iter().for_each(|path| {
+        match process_file(path, output_dir) {
+            Ok(_) =&gt; {
+                let count = processed.fetch_add(1, Ordering::SeqCst) + 1;
+                println!("[{}/{}] Processed: {:?}", count, total, path.file_name().unwrap());
+            }
+            Err(e) =&gt; {
+                failed.fetch_add(1, Ordering::SeqCst);
+                eprintln!("Failed: {:?} - {}", path.file_name().unwrap(), e);
+            }
+        }
+    });
+
+    println!("\nComplete: {} processed, {} failed",
+        processed.load(Ordering::SeqCst),
+        failed.load(Ordering::SeqCst));
+}
+
+fn process_file(input: &amp;PathBuf, output_dir: &amp;str) -&gt; Result&lt;(), Box&lt;dyn std::error::Error + Send + Sync&gt;&gt; {
+    let mesh = load_mesh(input)?;
+
+    let result = Pipeline::new(mesh)
+        .weld_vertices(1e-6)
+        .fill_holes()
+        .fix_winding()
+        .finish();
+
+    let output_name = input.file_stem().unwrap().to_string_lossy();
+    let output_path = format!("{}/{}_processed.stl", output_dir, output_name);
+
+    save_mesh(&amp;result.mesh, &amp;output_path)?;
+    Ok(())
+}</code></pre>
+<h2 id="progress-reporting"><a class="header" href="#progress-reporting">Progress Reporting</a></h2>
+<pre><code class="language-rust">use indicatif::{ProgressBar, ProgressStyle};
+
+fn process_with_progress(files: &amp;[PathBuf], output_dir: &amp;str) {
+    let pb = ProgressBar::new(files.len() as u64);
+    pb.set_style(ProgressStyle::default_bar()
+        .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+        .unwrap());
+
+    for file in files {
+        if let Err(e) = process_file(file, output_dir) {
+            pb.println(format!("Error: {:?} - {}", file, e));
+        }
+        pb.inc(1);
+    }
+
+    pb.finish_with_message("Batch complete");
+}</code></pre>
+<h2 id="batch-validation-report"><a class="header" href="#batch-validation-report">Batch Validation Report</a></h2>
+<pre><code class="language-rust">use mesh_repair::{load_mesh, validate_mesh};
+use std::path::Path;
+
+#[derive(Default)]
+struct BatchValidation {
+    total: usize,
+    manifold: usize,
+    watertight: usize,
+    printable: usize,
+}
+
+fn validate_directory(dir: &amp;str) -&gt; std::io::Result&lt;BatchValidation&gt; {
+    let mut stats = BatchValidation::default();
+
+    for entry in std::fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().map(|e| e == "stl").unwrap_or(false) {
+            if let Ok(mesh) = load_mesh(&amp;path) {
+                let report = validate_mesh(&amp;mesh);
+                stats.total += 1;
+                if report.is_manifold { stats.manifold += 1; }
+                if report.is_watertight { stats.watertight += 1; }
+                if report.is_printable() { stats.printable += 1; }
+            }
+        }
+    }
+
+    println!("Validation Report:");
+    println!("  Total files: {}", stats.total);
+    println!("  Manifold: {} ({:.1}%)", stats.manifold, 100.0 * stats.manifold as f64 / stats.total as f64);
+    println!("  Watertight: {} ({:.1}%)", stats.watertight, 100.0 * stats.watertight as f64 / stats.total as f64);
+    println!("  Printable: {} ({:.1}%)", stats.printable, 100.0 * stats.printable as f64 / stats.total as f64);
+
+    Ok(stats)
+}</code></pre>
+<h2 id="cli-batch-processing"><a class="header" href="#cli-batch-processing">CLI Batch Processing</a></h2>
+<pre><code class="language-bash"># Process all STLs in directory
+for f in input/*.stl; do
+    mesh-cli repair "$f" -o "output/$(basename "$f" .stl)_fixed.stl"
+done
+
+# Parallel with GNU parallel
+find input -name "*.stl" | parallel mesh-cli repair {} -o output/{/.}_fixed.stl
+
+# Validate all files
+for f in output/*.stl; do
+    echo "=== $f ==="
+    mesh-cli validate "$f"
+done
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="mesh-repair-api-reference"><a class="header" href="#mesh-repair-api-reference">mesh-repair API Reference</a></h1>
+<p>The core mesh processing library.</p>
+<h2 id="quick-links"><a class="header" href="#quick-links">Quick Links</a></h2>
+<ul>
+<li><a href="https://docs.rs/mesh-repair">Full API Docs</a> (docs.rs)</li>
+<li><a href="https://github.com/bigmark222/mesh/tree/main/crates/mesh-repair">Source Code</a></li>
+</ul>
+<h2 id="main-types"><a class="header" href="#main-types">Main Types</a></h2>
+<h3 id="mesh"><a class="header" href="#mesh">Mesh</a></h3>
+<p>The core mesh type representing a triangle mesh.</p>
+<pre><code class="language-rust">use mesh_repair::{Mesh, Vertex};
+
+let mut mesh = Mesh::new();
+mesh.vertices.push(Vertex::from_coords(0.0, 0.0, 0.0));
+mesh.vertices.push(Vertex::from_coords(1.0, 0.0, 0.0));
+mesh.vertices.push(Vertex::from_coords(0.5, 1.0, 0.0));
+mesh.faces.push([0, 1, 2]);
+
+// Geometry queries
+println!("Vertices: {}", mesh.vertex_count());
+println!("Faces: {}", mesh.face_count());
+println!("Surface area: {}", mesh.surface_area());
+println!("Volume: {}", mesh.volume());
+
+if let Some((min, max)) = mesh.bounds() {
+    println!("Bounds: {:?} to {:?}", min, max);
+}</code></pre>
+<h3 id="meshreport"><a class="header" href="#meshreport">MeshReport</a></h3>
+<p>Validation report containing mesh analysis.</p>
+<pre><code class="language-rust">use mesh_repair::{validate_mesh, Mesh};
+
+let mesh = Mesh::new();
+let report = validate_mesh(&amp;mesh);
+
+// Counts
+report.vertex_count;
+report.face_count;
+report.component_count;
+
+// Topology
+report.is_manifold;
+report.is_watertight;
+report.boundary_edge_count;
+report.non_manifold_edge_count;
+report.degenerate_face_count;
+
+// Helper methods
+report.is_valid();
+report.is_printable();</code></pre>
+<h2 id="core-functions"><a class="header" href="#core-functions">Core Functions</a></h2>
+<h3 id="io"><a class="header" href="#io">I/O</a></h3>
+<pre><code class="language-rust">// Load from file (format from extension)
+let mesh = load_mesh("model.stl")?;
+let mesh = load_mesh("model.obj")?;
+let mesh = load_mesh("model.ply")?;
+let mesh = load_mesh("model.3mf")?;
+
+// Save to file
+save_mesh(&amp;mesh, "output.stl")?;</code></pre>
+<h3 id="validation-1"><a class="header" href="#validation-1">Validation</a></h3>
+<pre><code class="language-rust">// Full validation
+let report = validate_mesh(&amp;mesh);
+
+// Component analysis
+let analysis = find_connected_components(&amp;mesh);</code></pre>
+<h3 id="repair"><a class="header" href="#repair">Repair</a></h3>
+<pre><code class="language-rust">// Weld duplicate vertices
+weld_vertices(&amp;mut mesh, tolerance);
+
+// Fill holes
+fill_holes(&amp;mut mesh)?;
+
+// Fix winding order
+fix_winding_order(&amp;mut mesh)?;
+
+// Remove degenerate triangles
+remove_degenerate_triangles(&amp;mut mesh, area_threshold);
+
+// Component operations
+remove_small_components(&amp;mut mesh, min_faces);
+keep_largest_component(&amp;mut mesh)?;</code></pre>
+<h3 id="simplification-1"><a class="header" href="#simplification-1">Simplification</a></h3>
+<pre><code class="language-rust">// Decimation
+let params = DecimateParams::with_target_triangles(10_000);
+let result = decimate_mesh(&amp;mesh, &amp;params);
+
+// Remeshing
+let params = RemeshParams { target_edge_length: Some(0.5), ..Default::default() };
+let result = remesh_isotropic(&amp;mesh, &amp;params);
+
+// Subdivision
+let params = SubdivideParams::with_iterations(1);
+let result = subdivide_mesh(&amp;mesh, &amp;params);</code></pre>
+<h3 id="boolean-operations-2"><a class="header" href="#boolean-operations-2">Boolean Operations</a></h3>
+<pre><code class="language-rust">let params = BooleanParams::default();
+let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Union, &amp;params)?;
+let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Intersection, &amp;params)?;
+let result = boolean_operation(&amp;mesh_a, &amp;mesh_b, BooleanOp::Difference, &amp;params)?;</code></pre>
+<h2 id="pipeline-api-1"><a class="header" href="#pipeline-api-1">Pipeline API</a></h2>
+<pre><code class="language-rust">let result = Pipeline::new(mesh)
+    .validate()
+    .weld_vertices(1e-6)
+    .fill_holes()
+    .fix_winding()
+    .decimate_to_ratio(0.5)
+    .remesh(0.5)
+    .finish();</code></pre>
+<h2 id="parameter-structs"><a class="header" href="#parameter-structs">Parameter Structs</a></h2>
+<h3 id="decimateparams"><a class="header" href="#decimateparams">DecimateParams</a></h3>
+<pre><code class="language-rust">DecimateParams {
+    target_triangles: Option&lt;usize&gt;,  // Target face count
+    target_ratio: f64,                 // Target ratio (0.0-1.0)
+    preserve_boundaries: bool,         // Keep boundary edges
+    min_quality: f64,                  // Min triangle quality
+}</code></pre>
+<h3 id="remeshparams"><a class="header" href="#remeshparams">RemeshParams</a></h3>
+<pre><code class="language-rust">RemeshParams {
+    target_edge_length: Option&lt;f64&gt;,  // Target edge length
+    iterations: usize,                 // Number of iterations
+    preserve_features: bool,           // Keep sharp features
+    feature_angle: f64,                // Angle threshold for features
+}</code></pre>
+<h3 id="subdivideparams"><a class="header" href="#subdivideparams">SubdivideParams</a></h3>
+<pre><code class="language-rust">SubdivideParams {
+    iterations: usize,  // Number of subdivisions
+}</code></pre>
+<h2 id="error-types"><a class="header" href="#error-types">Error Types</a></h2>
+<pre><code class="language-rust">pub enum MeshError {
+    IoError(std::io::Error),
+    ParseError { path: String, message: String },
+    InvalidTopology(String),
+    EmptyMesh(String),
+    RepairFailed(String),
+    HoleFillFailed(String),
+    BooleanFailed { operation: String, reason: String },
+    DecimationFailed(String),
+    RemeshingFailed(String),
+}</code></pre>
+<h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
+<pre><code class="language-toml">[dependencies]
+mesh-repair = { version = "0.1", features = ["pipeline-config"] }
+</code></pre>
+<ul>
+<li><code>pipeline-config</code>: Enable YAML/JSON pipeline configuration</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="umesh-shell"><a class="header" href="#umesh-shell">umesh shell</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="umesh-cli"><a class="header" href="#umesh-cli">umesh cli</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="uperformance"><a class="header" href="#uperformance">uperformance</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="umemory"><a class="header" href="#umemory">umemory</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="uerrors"><a class="header" href="#uerrors">uerrors</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="utesting"><a class="header" href="#utesting">utesting</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ucommon"><a class="header" href="#ucommon">ucommon</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ufaq"><a class="header" href="#ufaq">ufaq</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="usetup"><a class="header" href="#usetup">usetup</a></h1>
+<p>Documentation coming soon.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="uarchitecture"><a class="header" href="#uarchitecture">uarchitecture</a></h1>
+<p>Documentation coming soon.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

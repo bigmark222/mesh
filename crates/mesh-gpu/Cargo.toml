@@ -1,0 +1,29 @@
+[package]
+name = "mesh-gpu"
+description = "GPU-accelerated mesh processing using WGPU compute shaders"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords = ["mesh", "3d", "gpu", "wgpu", "compute"]
+categories = ["graphics", "algorithms"]
+
+[dependencies]
+mesh-repair = { version = "0.2", path = "../mesh-repair" }
+nalgebra.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+wgpu.workspace = true
+pollster.workspace = true
+bytemuck.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+approx.workspace = true
+criterion.workspace = true
+mesh_to_sdf.workspace = true
+fast-surface-nets.workspace = true
+
+[[bench]]
+name = "gpu_benchmarks"
+harness = false

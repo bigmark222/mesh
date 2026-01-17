@@ -12,6 +12,7 @@ use crate::error::{ShellError, ShellResult};
 #[derive(Debug, Clone)]
 pub struct SdfOffsetParams {
     /// Voxel size in mm (smaller = more detail, more memory).
+    /// When `adaptive_resolution` is true, this is the fine voxel size.
     pub voxel_size_mm: f64,
     /// Padding beyond mesh bounds in mm.
     pub padding_mm: f64,
@@ -19,6 +20,22 @@ pub struct SdfOffsetParams {
     pub max_voxels: usize,
     /// Number of nearest neighbors for offset interpolation.
     pub offset_neighbors: usize,
+    /// Enable adaptive multi-resolution SDF for memory efficiency.
+    /// When true, uses coarse voxels far from the surface and fine voxels near it.
+    pub adaptive_resolution: bool,
+    /// Coarse voxel size multiplier (relative to voxel_size_mm).
+    /// Only used when `adaptive_resolution` is true.
+    /// Default: 4.0 (coarse voxels are 4x larger than fine voxels).
+    pub coarse_voxel_multiplier: f64,
+    /// Distance from surface (in mm) within which to use fine voxels.
+    /// Only used when `adaptive_resolution` is true.
+    /// Default: 5.0mm
+    pub refinement_distance_mm: f64,
+    /// Use GPU acceleration if available (requires `gpu` feature).
+    /// When enabled and a GPU is available, SDF computation will use
+    /// GPU compute shaders for significant speedup on large meshes.
+    /// Falls back to CPU if GPU is unavailable or initialization fails.
+    pub use_gpu: bool,
 }
 
 impl Default for SdfOffsetParams {
@@ -28,11 +45,77 @@ impl Default for SdfOffsetParams {
             padding_mm: 12.0,
             max_voxels: 50_000_000,
             offset_neighbors: 8,
+            adaptive_resolution: false,
+            coarse_voxel_multiplier: 4.0,
+            refinement_distance_mm: 5.0,
+            use_gpu: false,
         }
     }
 }
 
+impl SdfOffsetParams {
+    /// Create params with adaptive resolution enabled for large meshes.
+    ///
+    /// Uses coarser voxels far from the surface to reduce memory usage
+    /// while maintaining detail quality near the surface.
+    pub fn adaptive() -> Self {
+        Self {
+            voxel_size_mm: 0.5,
+            padding_mm: 10.0,
+            max_voxels: 50_000_000,
+            offset_neighbors: 8,
+            adaptive_resolution: true,
+            coarse_voxel_multiplier: 4.0,
+            refinement_distance_mm: 5.0,
+            use_gpu: false,
+        }
+    }
+
+    /// Create high-quality params with adaptive resolution.
+    pub fn adaptive_high_quality() -> Self {
+        Self {
+            voxel_size_mm: 0.4,
+            padding_mm: 12.0,
+            max_voxels: 80_000_000,
+            offset_neighbors: 12,
+            adaptive_resolution: true,
+            coarse_voxel_multiplier: 3.0,
+            refinement_distance_mm: 8.0,
+            use_gpu: false,
+        }
+    }
+
+    /// Create params optimized for very large meshes.
+    pub fn adaptive_large_mesh() -> Self {
+        Self {
+            voxel_size_mm: 0.75,
+            padding_mm: 8.0,
+            max_voxels: 30_000_000,
+            offset_neighbors: 6,
+            adaptive_resolution: true,
+            coarse_voxel_multiplier: 5.0,
+            refinement_distance_mm: 4.0,
+            use_gpu: false,
+        }
+    }
+
+    /// Create params with GPU acceleration enabled.
+    ///
+    /// Requires the `gpu` feature to be enabled. Falls back to CPU
+    /// automatically if no GPU is available.
+    pub fn with_gpu(mut self) -> Self {
+        self.use_gpu = true;
+        self
+    }
+
+    /// Get the coarse voxel size when adaptive resolution is enabled.
+    pub fn coarse_voxel_size_mm(&self) -> f64 {
+        self.voxel_size_mm * self.coarse_voxel_multiplier
+    }
+}
+
 /// 3D voxel grid for SDF computation.
+#[derive(Debug)]
 pub struct SdfGrid {
     /// Grid dimensions [x, y, z].
     pub dims: [usize; 3],
@@ -46,6 +129,7 @@ pub struct SdfGrid {
     pub offsets: Vec<f32>,
 }
 
+#[allow(dead_code)] // Public API methods for library consumers
 impl SdfGrid {
     /// Create a grid sized to contain mesh with padding.
     pub fn from_mesh_bounds(
@@ -125,17 +209,50 @@ impl SdfGrid {
         )
     }
 
-    /// Compute SDF values using mesh_to_sdf crate.
+    /// Compute SDF values using mesh_to_sdf crate (CPU).
     pub fn compute_sdf(&mut self, mesh: &Mesh) {
-        use mesh_to_sdf::{generate_grid_sdf, Grid, SignMethod, Topology};
+        self.compute_sdf_cpu(mesh);
+    }
 
-        info!(vertices = mesh.vertices.len(), "Computing SDF");
+    /// Compute SDF values with optional GPU acceleration.
+    ///
+    /// When `use_gpu` is true and the `gpu` feature is enabled, this will
+    /// attempt to use GPU compute shaders. Falls back to CPU if GPU is
+    /// unavailable or the feature is not enabled.
+    pub fn compute_sdf_with_params(&mut self, mesh: &Mesh, params: &SdfOffsetParams) {
+        #[cfg(feature = "gpu")]
+        if params.use_gpu {
+            if self.try_compute_sdf_gpu(mesh) {
+                return;
+            }
+            info!("GPU unavailable or failed, falling back to CPU");
+        }
+
+        #[cfg(not(feature = "gpu"))]
+        if params.use_gpu {
+            info!("GPU feature not enabled, using CPU");
+        }
+
+        self.compute_sdf_cpu(mesh);
+    }
+
+    /// Compute SDF values using mesh_to_sdf crate (CPU implementation).
+    fn compute_sdf_cpu(&mut self, mesh: &Mesh) {
+        use mesh_to_sdf::{Grid, SignMethod, Topology, generate_grid_sdf};
+
+        info!(vertices = mesh.vertices.len(), "Computing SDF (CPU)");
 
         // Convert Mesh to mesh_to_sdf format
         let vertices: Vec<[f32; 3]> = mesh
             .vertices
             .iter()
-            .map(|v| [v.position.x as f32, v.position.y as f32, v.position.z as f32])
+            .map(|v| {
+                [
+                    v.position.x as f32,
+                    v.position.y as f32,
+                    v.position.z as f32,
+                ]
+            })
             .collect();
 
         let indices: Vec<u32> = mesh.faces.iter().flat_map(|f| f.iter().copied()).collect();
@@ -167,9 +284,40 @@ impl SdfGrid {
 
         debug!(
             min_sdf = self.values.iter().copied().fold(f32::INFINITY, f32::min),
-            max_sdf = self.values.iter().copied().fold(f32::NEG_INFINITY, f32::max),
-            "SDF computed"
+            max_sdf = self
+                .values
+                .iter()
+                .copied()
+                .fold(f32::NEG_INFINITY, f32::max),
+            "SDF computed (CPU)"
         );
+    }
+
+    /// Try to compute SDF using GPU acceleration.
+    ///
+    /// Returns true if GPU computation succeeded, false otherwise.
+    #[cfg(feature = "gpu")]
+    fn try_compute_sdf_gpu(&mut self, mesh: &Mesh) -> bool {
+        use mesh_gpu::{GpuSdfParams, try_compute_sdf_gpu};
+
+        let params = GpuSdfParams {
+            dims: self.dims,
+            origin: [
+                self.origin.x as f32,
+                self.origin.y as f32,
+                self.origin.z as f32,
+            ],
+            voxel_size: self.voxel_size as f32,
+        };
+
+        match try_compute_sdf_gpu(mesh, &params) {
+            Some(result) => {
+                info!(time_ms = result.compute_time_ms, "SDF computed (GPU)");
+                self.values = result.values;
+                true
+            }
+            None => false,
+        }
     }
 
     /// Interpolate offset values from mesh vertices into the grid.
@@ -198,7 +346,10 @@ impl SdfGrid {
             .map(|v| v.offset.unwrap_or(0.0))
             .collect();
 
-        info!("KD-tree built, interpolating {} voxels", self.total_voxels());
+        info!(
+            "KD-tree built, interpolating {} voxels",
+            self.total_voxels()
+        );
 
         let [_dim_x, dim_y, dim_z] = self.dims;
         let voxel_size = self.voxel_size;
@@ -247,7 +398,11 @@ impl SdfGrid {
 
         debug!(
             min_offset = self.offsets.iter().copied().fold(f32::INFINITY, f32::min),
-            max_offset = self.offsets.iter().copied().fold(f32::NEG_INFINITY, f32::max),
+            max_offset = self
+                .offsets
+                .iter()
+                .copied()
+                .fold(f32::NEG_INFINITY, f32::max),
             "Offsets interpolated"
         );
     }
@@ -268,7 +423,11 @@ impl SdfGrid {
 
         debug!(
             min_adjusted = self.values.iter().copied().fold(f32::INFINITY, f32::min),
-            max_adjusted = self.values.iter().copied().fold(f32::NEG_INFINITY, f32::max),
+            max_adjusted = self
+                .values
+                .iter()
+                .copied()
+                .fold(f32::NEG_INFINITY, f32::max),
             "Variable offset applied"
         );
     }
@@ -326,5 +485,55 @@ mod tests {
         let mesh = create_unit_cube();
         let result = SdfGrid::from_mesh_bounds(&mesh, 0.1, 5.0, 1000);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_sdf_offset_params_default() {
+        let params = SdfOffsetParams::default();
+        assert!(!params.adaptive_resolution);
+        assert_eq!(params.voxel_size_mm, 0.75);
+    }
+
+    #[test]
+    fn test_sdf_offset_params_adaptive() {
+        let params = SdfOffsetParams::adaptive();
+        assert!(params.adaptive_resolution);
+        assert!(params.coarse_voxel_size_mm() > params.voxel_size_mm);
+    }
+
+    #[test]
+    fn test_sdf_offset_params_presets() {
+        let hq = SdfOffsetParams::adaptive_high_quality();
+        let large = SdfOffsetParams::adaptive_large_mesh();
+
+        // High quality should have finer voxels
+        assert!(hq.voxel_size_mm < large.voxel_size_mm);
+
+        // Both should have adaptive enabled
+        assert!(hq.adaptive_resolution);
+        assert!(large.adaptive_resolution);
+    }
+
+    #[test]
+    fn test_coarse_voxel_size() {
+        let params = SdfOffsetParams {
+            voxel_size_mm: 1.0,
+            coarse_voxel_multiplier: 4.0,
+            ..Default::default()
+        };
+        assert_eq!(params.coarse_voxel_size_mm(), 4.0);
+    }
+
+    #[test]
+    fn test_sdf_offset_params_with_gpu() {
+        let params = SdfOffsetParams::default().with_gpu();
+        assert!(params.use_gpu);
+        assert!(!params.adaptive_resolution); // Should preserve other settings
+    }
+
+    #[test]
+    fn test_sdf_offset_params_gpu_default() {
+        let params = SdfOffsetParams::default();
+        assert!(!params.use_gpu); // GPU disabled by default
     }
 }
