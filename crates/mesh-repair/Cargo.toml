@@ -17,6 +17,7 @@ quick-xml.workspace = true
 ply-rs.workspace = true
 hashbrown.workspace = true
 thiserror.workspace = true
+miette.workspace = true
 tracing.workspace = true
 kiddo.workspace = true
 fast-surface-nets.workspace = true
@@ -31,6 +32,11 @@ truck-stepio = { workspace = true, optional = true }
 # UUID generation (optional, for 3MF production extension)
 uuid = { workspace = true, optional = true }
 
+# Serialization (optional, for pipeline config)
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+
 [features]
 default = []
 step = ["truck-topology", "truck-geometry", "truck-modeling", "truck-stepio"]
@@ -38,7 +44,19 @@ step = ["truck-topology", "truck-geometry", "truck-modeling", "truck-stepio"]
 3mf-production = ["uuid"]
 # Full 3MF support (all extensions)
 3mf-full = ["3mf-production"]
+# Pipeline serialization - save/load workflows as TOML/JSON
+pipeline-config = ["serde", "serde_json", "toml"]
 
 [dev-dependencies]
 tempfile.workspace = true
 approx.workspace = true
+proptest.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "mesh_benchmarks"
+harness = false
+
+[package.metadata.cargo-machete]
+# truck-topology is required by truck-modeling but machete doesn't detect transitive usage
+ignored = ["truck-topology"]

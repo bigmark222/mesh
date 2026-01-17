@@ -10,6 +10,7 @@ use crate::{Mesh, MeshAdjacency, Vertex};
 
 /// Parameters for mesh subdivision.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "pipeline-config", derive(serde::Serialize, serde::Deserialize))]
 pub struct SubdivideParams {
     /// Number of subdivision iterations.
     /// Each iteration roughly quadruples the triangle count.
@@ -266,8 +267,8 @@ fn compute_edge_vertex_position(
 
     let edge_key = if v0 < v1 { (v0, v1) } else { (v1, v0) };
 
-    if let Some(face_indices) = adj.edge_to_faces.get(&edge_key) {
-        if face_indices.len() == 2 {
+    if let Some(face_indices) = adj.edge_to_faces.get(&edge_key)
+        && face_indices.len() == 2 {
             // Find the opposite vertices in the two adjacent faces
             let mut opposite_vertices = Vec::new();
             for &fi in face_indices {
@@ -292,7 +293,6 @@ fn compute_edge_vertex_position(
                 );
             }
         }
-    }
 
     // Fallback to midpoint
     Point3::new(

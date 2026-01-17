@@ -337,14 +337,16 @@ impl PointCloud {
 
         use std::collections::HashMap;
 
+        // Voxel data: (position_sum, normal_sum, count)
+        type VoxelData = (Vector3<f64>, Option<Vector3<f64>>, usize);
+
         let (min_bound, _) = match self.bounds() {
             Some(b) => b,
             None => return self.clone(),
         };
 
         // Map voxel indices to accumulated points
-        let mut voxel_map: HashMap<(i64, i64, i64), (Vector3<f64>, Option<Vector3<f64>>, usize)> =
-            HashMap::new();
+        let mut voxel_map: HashMap<(i64, i64, i64), VoxelData> = HashMap::new();
 
         for point in &self.points {
             let ix = ((point.position.x - min_bound.x) / voxel_size).floor() as i64;
@@ -535,35 +537,32 @@ fn load_ply_pointcloud(path: &Path) -> MeshResult<PointCloud> {
                 vertex_element.get("nx"),
                 vertex_element.get("ny"),
                 vertex_element.get("nz"),
-            ) {
-                if let (Ok(nx), Ok(ny), Ok(nz)) = (
+            )
+                && let (Ok(nx), Ok(ny), Ok(nz)) = (
                     get_ply_float(Some(nx)),
                     get_ply_float(Some(ny)),
                     get_ply_float(Some(nz)),
                 ) {
                     point.normal = Some(Vector3::new(nx, ny, nz));
                 }
-            }
 
             // Load colors if present
             if let (Some(r), Some(g), Some(b)) = (
                 vertex_element.get("red"),
                 vertex_element.get("green"),
                 vertex_element.get("blue"),
-            ) {
-                if let (Ok(r), Ok(g), Ok(b)) =
+            )
+                && let (Ok(r), Ok(g), Ok(b)) =
                     (get_ply_u8(Some(r)), get_ply_u8(Some(g)), get_ply_u8(Some(b)))
                 {
                     point.color = Some(VertexColor::new(r, g, b));
                 }
-            }
 
             // Load intensity if present
-            if let Some(intensity) = vertex_element.get("intensity") {
-                if let Ok(i) = get_ply_float(Some(intensity)) {
+            if let Some(intensity) = vertex_element.get("intensity")
+                && let Ok(i) = get_ply_float(Some(intensity)) {
                     point.intensity = Some(i as f32);
                 }
-            }
 
             cloud.push(point);
         }
@@ -748,15 +747,14 @@ fn load_xyz(path: &Path) -> MeshResult<PointCloud> {
         let mut point = CloudPoint::from_coords(x, y, z);
 
         // Check for normals (6 values: x y z nx ny nz)
-        if parts.len() >= 6 {
-            if let (Ok(nx), Ok(ny), Ok(nz)) = (
+        if parts.len() >= 6
+            && let (Ok(nx), Ok(ny), Ok(nz)) = (
                 parts[3].parse::<f64>(),
                 parts[4].parse::<f64>(),
                 parts[5].parse::<f64>(),
             ) {
                 point.normal = Some(Vector3::new(nx, ny, nz));
             }
-        }
 
         // Check for colors (9 values: x y z nx ny nz r g b, or 6: x y z r g b)
         if parts.len() >= 9 {
@@ -890,7 +888,7 @@ fn load_pcd(path: &Path) -> MeshResult<PointCloud> {
             source: e,
         })?;
 
-        let parts: Vec<&str> = line.trim().split_whitespace().collect();
+        let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.is_empty() {
             continue;
         }
@@ -917,35 +915,31 @@ fn load_pcd(path: &Path) -> MeshResult<PointCloud> {
         let mut point = CloudPoint::from_coords(x, y, z);
 
         // Extract normals
-        if let (Some(nxi), Some(nyi), Some(nzi)) = (nx_idx, ny_idx, nz_idx) {
-            if let (Some(nx), Some(ny), Some(nz)) = (
+        if let (Some(nxi), Some(nyi), Some(nzi)) = (nx_idx, ny_idx, nz_idx)
+            && let (Some(nx), Some(ny), Some(nz)) = (
                 parts.get(nxi).and_then(|s| s.parse::<f64>().ok()),
                 parts.get(nyi).and_then(|s| s.parse::<f64>().ok()),
                 parts.get(nzi).and_then(|s| s.parse::<f64>().ok()),
-            ) {
-                if !nx.is_nan() && !ny.is_nan() && !nz.is_nan() {
+            )
+                && !nx.is_nan() && !ny.is_nan() && !nz.is_nan() {
                     point.normal = Some(Vector3::new(nx, ny, nz));
                 }
-            }
-        }
 
         // Extract colors
-        if let (Some(ri), Some(gi), Some(bi)) = (r_idx, g_idx, b_idx) {
-            if let (Some(r), Some(g), Some(b)) = (
+        if let (Some(ri), Some(gi), Some(bi)) = (r_idx, g_idx, b_idx)
+            && let (Some(r), Some(g), Some(b)) = (
                 parts.get(ri).and_then(|s| s.parse::<u8>().ok()),
                 parts.get(gi).and_then(|s| s.parse::<u8>().ok()),
                 parts.get(bi).and_then(|s| s.parse::<u8>().ok()),
             ) {
                 point.color = Some(VertexColor::new(r, g, b));
             }
-        }
 
         // Extract intensity
-        if let Some(ii) = intensity_idx {
-            if let Some(i) = parts.get(ii).and_then(|s| s.parse::<f32>().ok()) {
+        if let Some(ii) = intensity_idx
+            && let Some(i) = parts.get(ii).and_then(|s| s.parse::<f32>().ok()) {
                 point.intensity = Some(i);
             }
-        }
 
         cloud.push(point);
     }

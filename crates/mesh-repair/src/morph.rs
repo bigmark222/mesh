@@ -377,11 +377,10 @@ fn morph_rbf(mesh: &Mesh, params: &MorphParams, kernel: RbfKernel) -> MeshResult
 
     for (idx, vertex) in morphed.vertices.iter_mut().enumerate() {
         // Check region mask
-        if let Some(ref mask) = params.region_mask {
-            if !mask.contains(&(idx as u32)) {
+        if let Some(ref mask) = params.region_mask
+            && !mask.contains(&(idx as u32)) {
                 continue;
             }
-        }
 
         let p = vertex.position;
 
@@ -568,11 +567,10 @@ fn morph_ffd(mesh: &Mesh, params: &MorphParams) -> MeshResult<MorphResult> {
 
     for (idx, vertex) in morphed.vertices.iter_mut().enumerate() {
         // Check region mask
-        if let Some(ref mask) = params.region_mask {
-            if !mask.contains(&(idx as u32)) {
+        if let Some(ref mask) = params.region_mask
+            && !mask.contains(&(idx as u32)) {
                 continue;
             }
-        }
 
         let p = vertex.position;
 
@@ -621,6 +619,7 @@ fn morph_ffd(mesh: &Mesh, params: &MorphParams) -> MeshResult<MorphResult> {
 }
 
 /// Evaluate FFD at parameter coordinates (u, v, w) using Bernstein polynomials.
+#[allow(clippy::needless_range_loop)] // 3D lattice indexing is clearer with explicit indices
 fn evaluate_ffd(
     control_points: &[Vec<Vec<Point3<f64>>>],
     nx: usize,

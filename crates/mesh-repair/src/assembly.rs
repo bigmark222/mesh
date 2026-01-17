@@ -87,21 +87,20 @@ impl Assembly {
     /// Returns an error if a part with the same ID already exists.
     pub fn add_part(&mut self, part: Part) -> MeshResult<()> {
         if self.parts.contains_key(&part.id) {
-            return Err(MeshError::InvalidTopology {
-                details: format!("Part with ID '{}' already exists", part.id),
-            });
+            return Err(MeshError::invalid_topology(format!(
+                "Part with ID '{}' already exists",
+                part.id
+            )));
         }
 
         // Validate parent exists if specified
-        if let Some(ref parent_id) = part.parent_id {
-            if !self.parts.contains_key(parent_id) {
-                return Err(MeshError::InvalidTopology {
-                    details: format!(
-                        "Parent part '{}' does not exist for part '{}'",
-                        parent_id, part.id
-                    ),
-                });
-            }
+        if let Some(ref parent_id) = part.parent_id
+            && !self.parts.contains_key(parent_id)
+        {
+            return Err(MeshError::invalid_topology(format!(
+                "Parent part '{}' does not exist for part '{}'",
+                parent_id, part.id
+            )));
         }
 
         self.parts.insert(part.id.clone(), part);
@@ -169,14 +168,16 @@ impl Assembly {
     pub fn define_connection(&mut self, connection: Connection) -> MeshResult<()> {
         // Validate both parts exist
         if !self.parts.contains_key(&connection.from_part) {
-            return Err(MeshError::InvalidTopology {
-                details: format!("Part '{}' does not exist", connection.from_part),
-            });
+            return Err(MeshError::invalid_topology(format!(
+                "Part '{}' does not exist",
+                connection.from_part
+            )));
         }
         if !self.parts.contains_key(&connection.to_part) {
-            return Err(MeshError::InvalidTopology {
-                details: format!("Part '{}' does not exist", connection.to_part),
-            });
+            return Err(MeshError::invalid_topology(format!(
+                "Part '{}' does not exist",
+                connection.to_part
+            )));
         }
 
         self.connections.push(connection);
@@ -275,11 +276,10 @@ impl Assembly {
 
         // Check for orphan parent references
         for part in self.parts.values() {
-            if let Some(ref parent_id) = part.parent_id {
-                if !self.parts.contains_key(parent_id) {
+            if let Some(ref parent_id) = part.parent_id
+                && !self.parts.contains_key(parent_id) {
                     result.orphan_references.push((part.id.clone(), parent_id.clone()));
                 }
-            }
         }
 
         // Check for circular parent references
@@ -320,13 +320,13 @@ impl Assembly {
 
     /// Check interference between two parts.
     pub fn check_interference(&self, part_a: &str, part_b: &str) -> MeshResult<InterferenceResult> {
-        let mesh_a = self.get_transformed_mesh(part_a).ok_or_else(|| MeshError::InvalidTopology {
-            details: format!("Part '{}' not found", part_a),
-        })?;
+        let mesh_a = self
+            .get_transformed_mesh(part_a)
+            .ok_or_else(|| MeshError::invalid_topology(format!("Part '{}' not found", part_a)))?;
 
-        let mesh_b = self.get_transformed_mesh(part_b).ok_or_else(|| MeshError::InvalidTopology {
-            details: format!("Part '{}' not found", part_b),
-        })?;
+        let mesh_b = self
+            .get_transformed_mesh(part_b)
+            .ok_or_else(|| MeshError::invalid_topology(format!("Part '{}' not found", part_b)))?;
 
         // Compute bounding boxes for quick rejection
         let bbox_a = compute_bbox(&mesh_a);
@@ -351,13 +351,13 @@ impl Assembly {
 
     /// Check clearance between two parts.
     pub fn check_clearance(&self, part_a: &str, part_b: &str, min_required: f64) -> MeshResult<ClearanceResult> {
-        let mesh_a = self.get_transformed_mesh(part_a).ok_or_else(|| MeshError::InvalidTopology {
-            details: format!("Part '{}' not found", part_a),
-        })?;
+        let mesh_a = self
+            .get_transformed_mesh(part_a)
+            .ok_or_else(|| MeshError::invalid_topology(format!("Part '{}' not found", part_a)))?;
 
-        let mesh_b = self.get_transformed_mesh(part_b).ok_or_else(|| MeshError::InvalidTopology {
-            details: format!("Part '{}' not found", part_b),
-        })?;
+        let mesh_b = self
+            .get_transformed_mesh(part_b)
+            .ok_or_else(|| MeshError::invalid_topology(format!("Part '{}' not found", part_b)))?;
 
         // Compute approximate clearance using bounding boxes
         let bbox_a = compute_bbox(&mesh_a);
@@ -445,7 +445,7 @@ impl Assembly {
         zip.start_file("[Content_Types].xml", options)
             .map_err(|e| MeshError::IoWrite {
                 path: path.to_path_buf(),
-                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+                source: std::io::Error::other(e.to_string()),
             })?;
         zip.write_all(ASSEMBLY_CONTENT_TYPES_XML.as_bytes())
             .map_err(|e| MeshError::IoWrite {
@@ -457,7 +457,7 @@ impl Assembly {
         zip.start_file("_rels/.rels", options)
             .map_err(|e| MeshError::IoWrite {
                 path: path.to_path_buf(),
-                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+                source: std::io::Error::other(e.to_string()),
             })?;
         zip.write_all(ASSEMBLY_RELS_XML.as_bytes())
             .map_err(|e| MeshError::IoWrite {
@@ -469,7 +469,7 @@ impl Assembly {
         zip.start_file("3D/3dmodel.model", options)
             .map_err(|e| MeshError::IoWrite {
                 path: path.to_path_buf(),
-                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+                source: std::io::Error::other(e.to_string()),
             })?;
 
         let model_xml = self.generate_3mf_model_xml();
@@ -481,7 +481,7 @@ impl Assembly {
 
         zip.finish().map_err(|e| MeshError::IoWrite {
             path: path.to_path_buf(),
-            source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+            source: std::io::Error::other(e.to_string()),
         })?;
 
         Ok(())
@@ -492,7 +492,7 @@ impl Assembly {
         let mut xml = String::with_capacity(self.parts.len() * 1000);
 
         xml.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>
-<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
   <metadata name="Title">"#);
         xml.push_str(&escape_xml(&self.name));
         xml.push_str("</metadata>\n");
@@ -713,14 +713,14 @@ impl Assembly {
                 writer,
                 "{},{},{},{:.2},{:.2},{:.2},{:.2},{},{}",
                 escape_csv(&item.part_id),
-                escape_csv(&item.material.as_deref().unwrap_or("")),
+                escape_csv(item.material.as_deref().unwrap_or("")),
                 item.quantity,
                 item.dimensions.0,
                 item.dimensions.1,
                 item.dimensions.2,
                 item.bounding_volume,
                 item.triangle_count,
-                escape_csv(&item.parent.as_deref().unwrap_or(""))
+                escape_csv(item.parent.as_deref().unwrap_or(""))
             )
             .map_err(|e| MeshError::IoWrite {
                 path: path.to_path_buf(),

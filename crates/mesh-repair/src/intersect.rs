@@ -59,6 +59,11 @@ pub struct IntersectionParams {
     /// Whether to skip adjacent triangles (sharing an edge or vertex).
     /// Usually true since adjacent triangles touching at edges isn't a "self-intersection".
     pub skip_adjacent: bool,
+    /// Use GPU acceleration if available (requires `gpu` feature in mesh-shell).
+    /// When enabled and a GPU is available, collision detection will use
+    /// GPU compute shaders for significant speedup on dense meshes.
+    /// Falls back to CPU if GPU is unavailable or initialization fails.
+    pub use_gpu: bool,
 }
 
 impl Default for IntersectionParams {
@@ -67,18 +72,30 @@ impl Default for IntersectionParams {
             max_reported: 100,
             epsilon: 1e-10,
             skip_adjacent: true,
+            use_gpu: false,
         }
+    }
+}
+
+impl IntersectionParams {
+    /// Create params with GPU acceleration enabled.
+    ///
+    /// Requires the `gpu` feature to be enabled in the calling crate.
+    /// Falls back to CPU automatically if no GPU is available.
+    pub fn with_gpu(mut self) -> Self {
+        self.use_gpu = true;
+        self
     }
 }
 
 /// Axis-aligned bounding box for spatial acceleration.
 #[derive(Debug, Clone, Copy)]
-struct AABB {
+struct Aabb {
     min: Point3<f64>,
     max: Point3<f64>,
 }
 
-impl AABB {
+impl Aabb {
     /// Create AABB from a triangle.
     fn from_triangle(tri: &Triangle) -> Self {
         let min = Point3::new(
@@ -111,7 +128,7 @@ impl AABB {
     }
 
     /// Check if two AABBs overlap.
-    fn overlaps(&self, other: &AABB) -> bool {
+    fn overlaps(&self, other: &Aabb) -> bool {
         self.min.x <= other.max.x
             && self.max.x >= other.min.x
             && self.min.y <= other.max.y
@@ -163,9 +180,9 @@ pub fn detect_self_intersections(mesh: &Mesh, params: &IntersectionParams) -> Se
 
     // Precompute triangles and AABBs
     let triangles: Vec<Triangle> = mesh.triangles().collect();
-    let aabbs: Vec<AABB> = triangles
+    let aabbs: Vec<Aabb> = triangles
         .iter()
-        .map(|t| AABB::from_triangle(t).expand(params.epsilon))
+        .map(|t| Aabb::from_triangle(t).expand(params.epsilon))
         .collect();
 
     // Build adjacency info if we need to skip adjacent triangles
@@ -209,11 +226,10 @@ pub fn detect_self_intersections(mesh: &Mesh, params: &IntersectionParams) -> Se
                 }
 
                 // Skip adjacent triangles if requested
-                if let Some(ref adj) = adjacency {
-                    if adj[i].contains(&(j as u32)) {
+                if let Some(ref adj) = adjacency
+                    && adj[i].contains(&(j as u32)) {
                         continue;
                     }
-                }
 
                 // Perform actual triangle-triangle intersection test
                 if triangles_intersect(&triangles[i], &triangles[j], params.epsilon) {
@@ -320,21 +336,19 @@ fn triangles_intersect(t1: &Triangle, t2: &Triangle, epsilon: f64) -> bool {
         // Test separation using edges of triangle 1 (perpendicular in-plane)
         for edge in &edges1 {
             let axis = n1.cross(edge);
-            if axis.norm_squared() > epsilon * epsilon {
-                if separated_by_axis(&axis, t1, t2, epsilon) {
+            if axis.norm_squared() > epsilon * epsilon
+                && separated_by_axis(&axis, t1, t2, epsilon) {
                     return false;
                 }
-            }
         }
 
         // Test separation using edges of triangle 2 (perpendicular in-plane)
         for edge in &edges2 {
             let axis = n2.cross(edge);
-            if axis.norm_squared() > epsilon * epsilon {
-                if separated_by_axis(&axis, t1, t2, epsilon) {
+            if axis.norm_squared() > epsilon * epsilon
+                && separated_by_axis(&axis, t1, t2, epsilon) {
                     return false;
                 }
-            }
         }
 
         // No separating axis in-plane - coplanar triangles overlap
@@ -355,11 +369,10 @@ fn triangles_intersect(t1: &Triangle, t2: &Triangle, epsilon: f64) -> bool {
     for e1 in &edges1 {
         for e2 in &edges2 {
             let axis = e1.cross(e2);
-            if axis.norm_squared() > epsilon * epsilon {
-                if separated_by_axis(&axis, t1, t2, epsilon) {
+            if axis.norm_squared() > epsilon * epsilon
+                && separated_by_axis(&axis, t1, t2, epsilon) {
                     return false;
                 }
-            }
         }
     }
 
@@ -402,15 +415,15 @@ mod tests {
 
     #[test]
     fn test_aabb_overlap() {
-        let aabb1 = AABB {
+        let aabb1 = Aabb {
             min: Point3::new(0.0, 0.0, 0.0),
             max: Point3::new(1.0, 1.0, 1.0),
         };
-        let aabb2 = AABB {
+        let aabb2 = Aabb {
             min: Point3::new(0.5, 0.5, 0.5),
             max: Point3::new(1.5, 1.5, 1.5),
         };
-        let aabb3 = AABB {
+        let aabb3 = Aabb {
             min: Point3::new(2.0, 2.0, 2.0),
             max: Point3::new(3.0, 3.0, 3.0),
         };

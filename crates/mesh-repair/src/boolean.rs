@@ -157,12 +157,12 @@ pub struct BooleanStats {
 
 /// Axis-aligned bounding box for BVH.
 #[derive(Debug, Clone)]
-struct AABB {
+struct Aabb {
     min: Point3<f64>,
     max: Point3<f64>,
 }
 
-impl AABB {
+impl Aabb {
     fn new() -> Self {
         Self {
             min: Point3::new(f64::MAX, f64::MAX, f64::MAX),
@@ -185,7 +185,7 @@ impl AABB {
         }
     }
 
-    fn expand(&mut self, other: &AABB) {
+    fn expand(&mut self, other: &Aabb) {
         self.min.x = self.min.x.min(other.min.x);
         self.min.y = self.min.y.min(other.min.y);
         self.min.z = self.min.z.min(other.min.z);
@@ -194,7 +194,7 @@ impl AABB {
         self.max.z = self.max.z.max(other.max.z);
     }
 
-    fn intersects(&self, other: &AABB, tolerance: f64) -> bool {
+    fn intersects(&self, other: &Aabb, tolerance: f64) -> bool {
         !(self.max.x + tolerance < other.min.x
             || other.max.x + tolerance < self.min.x
             || self.max.y + tolerance < other.min.y
@@ -227,24 +227,24 @@ impl AABB {
 
 /// BVH node for acceleration.
 #[derive(Debug)]
-enum BVHNode {
+enum BvhNode {
     Leaf {
-        bbox: AABB,
+        bbox: Aabb,
         triangles: Vec<usize>,
     },
     Internal {
-        bbox: AABB,
-        left: Box<BVHNode>,
-        right: Box<BVHNode>,
+        bbox: Aabb,
+        left: Box<BvhNode>,
+        right: Box<BvhNode>,
     },
 }
 
 /// BVH tree for fast intersection queries.
-struct BVH {
-    root: Option<BVHNode>,
+struct Bvh {
+    root: Option<BvhNode>,
 }
 
-impl BVH {
+impl Bvh {
     /// Build a BVH from mesh triangles.
     fn build(mesh: &Mesh, max_leaf_size: usize) -> Self {
         if mesh.faces.is_empty() {
@@ -252,7 +252,7 @@ impl BVH {
         }
 
         // Build list of triangle indices with bounding boxes
-        let triangles: Vec<(usize, AABB)> = mesh
+        let triangles: Vec<(usize, Aabb)> = mesh
             .faces
             .iter()
             .enumerate()
@@ -260,7 +260,7 @@ impl BVH {
                 let v0 = &mesh.vertices[face[0] as usize].position;
                 let v1 = &mesh.vertices[face[1] as usize].position;
                 let v2 = &mesh.vertices[face[2] as usize].position;
-                (i, AABB::from_triangle(v0, v1, v2))
+                (i, Aabb::from_triangle(v0, v1, v2))
             })
             .collect();
 
@@ -271,12 +271,12 @@ impl BVH {
     }
 
     fn build_recursive(
-        triangles: &[(usize, AABB)],
+        triangles: &[(usize, Aabb)],
         indices: Vec<usize>,
         max_leaf_size: usize,
-    ) -> BVHNode {
+    ) -> BvhNode {
         // Compute bounding box of all triangles
-        let mut bbox = AABB::new();
+        let mut bbox = Aabb::new();
         for &i in &indices {
             bbox.expand(&triangles[i].1);
         }
@@ -284,7 +284,7 @@ impl BVH {
         // If few enough triangles, make a leaf
         if indices.len() <= max_leaf_size {
             let triangle_indices: Vec<usize> = indices.iter().map(|&i| triangles[i].0).collect();
-            return BVHNode::Leaf {
+            return BvhNode::Leaf {
                 bbox,
                 triangles: triangle_indices,
             };
@@ -316,7 +316,7 @@ impl BVH {
         let left = Self::build_recursive(triangles, left_indices, max_leaf_size);
         let right = Self::build_recursive(triangles, right_indices, max_leaf_size);
 
-        BVHNode::Internal {
+        BvhNode::Internal {
             bbox,
             left: Box::new(left),
             right: Box::new(right),
@@ -324,7 +324,7 @@ impl BVH {
     }
 
     /// Find all triangles that might intersect the given bounding box.
-    fn query(&self, query_bbox: &AABB, tolerance: f64) -> Vec<usize> {
+    fn query(&self, query_bbox: &Aabb, tolerance: f64) -> Vec<usize> {
         let mut result = Vec::new();
         if let Some(ref root) = self.root {
             Self::query_recursive(root, query_bbox, tolerance, &mut result);
@@ -333,18 +333,18 @@ impl BVH {
     }
 
     fn query_recursive(
-        node: &BVHNode,
-        query_bbox: &AABB,
+        node: &BvhNode,
+        query_bbox: &Aabb,
         tolerance: f64,
         result: &mut Vec<usize>,
     ) {
         match node {
-            BVHNode::Leaf { bbox, triangles } => {
+            BvhNode::Leaf { bbox, triangles } => {
                 if bbox.intersects(query_bbox, tolerance) {
                     result.extend(triangles.iter().copied());
                 }
             }
-            BVHNode::Internal { bbox, left, right } => {
+            BvhNode::Internal { bbox, left, right } => {
                 if bbox.intersects(query_bbox, tolerance) {
                     Self::query_recursive(left, query_bbox, tolerance, result);
                     Self::query_recursive(right, query_bbox, tolerance, result);
@@ -554,8 +554,10 @@ pub fn boolean_operation(
 
     // Build result mesh based on operation type
     let mut result = Mesh::new();
-    let mut stats = BooleanStats::default();
-    stats.coplanar_pairs = coplanar_count;
+    let mut stats = BooleanStats {
+        coplanar_pairs: coplanar_count,
+        ..Default::default()
+    };
 
     match operation {
         BooleanOp::Union => {
@@ -842,7 +844,7 @@ fn find_mesh_intersections(
     let mut intersections = Vec::new();
 
     // Build BVH for mesh B (the one we query against)
-    let bvh_b = BVH::build(mesh_b, 8);
+    let bvh_b = Bvh::build(mesh_b, 8);
 
     // For each triangle in A, query BVH to find potential intersections
     for (ai, face_a) in mesh_a.faces.iter().enumerate() {
@@ -851,7 +853,7 @@ fn find_mesh_intersections(
         let a2 = &mesh_a.vertices[face_a[2] as usize].position;
 
         // Compute bounding box of triangle A
-        let bbox_a = AABB::from_triangle(a0, a1, a2);
+        let bbox_a = Aabb::from_triangle(a0, a1, a2);
 
         // Query BVH for potential intersections
         let candidates = bvh_b.query(&bbox_a, tolerance);
@@ -921,11 +923,10 @@ fn triangles_intersect(
         if ray_triangle_intersect(e0, &dir, b0, b1, b2) {
             // Check if intersection is within edge
             let t = compute_intersection_t(e0, e1, b0, b1, b2);
-            if let Some(t) = t {
-                if (0.0..=1.0).contains(&t) {
+            if let Some(t) = t
+                && (0.0..=1.0).contains(&t) {
                     return true;
                 }
-            }
         }
     }
 
@@ -940,11 +941,10 @@ fn triangles_intersect(
         let dir = *e1 - **e0;
         if ray_triangle_intersect(e0, &dir, a0, a1, a2) {
             let t = compute_intersection_t(e0, e1, a0, a1, a2);
-            if let Some(t) = t {
-                if (0.0..=1.0).contains(&t) {
+            if let Some(t) = t
+                && (0.0..=1.0).contains(&t) {
                     return true;
                 }
-            }
         }
     }
 
@@ -1521,9 +1521,9 @@ pub fn shell_boolean(
     let params = params.unwrap_or(&default_params);
 
     if thickness <= 0.0 {
-        return Err(MeshError::RepairFailed {
-            details: "Shell thickness must be positive".to_string(),
-        });
+        return Err(MeshError::repair_failed(
+            "Shell thickness must be positive",
+        ));
     }
 
     // Generate outer offset (expand by half thickness)
@@ -2042,8 +2042,10 @@ pub fn boolean_operation_with_progress(
     }
 
     let mut result = Mesh::new();
-    let mut stats = BooleanStats::default();
-    stats.coplanar_pairs = coplanar_count;
+    let mut stats = BooleanStats {
+        coplanar_pairs: coplanar_count,
+        ..Default::default()
+    };
 
     match operation {
         BooleanOp::Union => {
@@ -2237,7 +2239,7 @@ mod tests {
         let result = boolean_operation(&cube_a, &cube_b, BooleanOp::Union, &BooleanParams::default()).unwrap();
 
         // Should have some faces
-        assert!(result.mesh.faces.len() > 0);
+        assert!(!result.mesh.faces.is_empty());
     }
 
     #[test]
@@ -2338,7 +2340,7 @@ mod tests {
 
         // Should detect coplanar faces
         // Note: The exact result depends on numerical tolerances
-        assert!(result.mesh.faces.len() > 0);
+        assert!(!result.mesh.faces.is_empty());
     }
 
     #[test]
@@ -2346,24 +2348,26 @@ mod tests {
         let cube_a = create_cube(Point3::new(0.0, 0.0, 0.0), 2.0);
         let cube_b = create_cube(Point3::new(2.0, 0.0, 0.0), 2.0);
 
-        let mut params = BooleanParams::default();
-        params.coplanar_strategy = CoplanarStrategy::Exclude;
+        let params = BooleanParams {
+            coplanar_strategy: CoplanarStrategy::Exclude,
+            ..Default::default()
+        };
 
         let result = boolean_operation(&cube_a, &cube_b, BooleanOp::Union, &params).unwrap();
 
         // Result should exclude coplanar faces
-        assert!(result.mesh.faces.len() > 0);
+        assert!(!result.mesh.faces.is_empty());
     }
 
     #[test]
     fn test_bvh_construction() {
         let cube = create_cube(Point3::origin(), 2.0);
-        let bvh = BVH::build(&cube, 4);
+        let bvh = Bvh::build(&cube, 4);
 
         assert!(bvh.root.is_some());
 
         // Query with a bbox that overlaps the cube
-        let query_bbox = AABB::from_triangle(
+        let query_bbox = Aabb::from_triangle(
             &Point3::new(-0.5, -0.5, -0.5),
             &Point3::new(0.5, -0.5, -0.5),
             &Point3::new(0.0, 0.5, -0.5),
@@ -2371,7 +2375,7 @@ mod tests {
 
         let candidates = bvh.query(&query_bbox, 1e-8);
         // Should find some triangles
-        assert!(candidates.len() > 0);
+        assert!(!candidates.is_empty());
     }
 
     #[test]

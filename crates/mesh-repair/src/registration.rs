@@ -892,7 +892,7 @@ pub fn non_rigid_align(
     // Step 2: Select control points
     let num_control_points = nr_params
         .num_control_points
-        .unwrap_or_else(|| (working_mesh.vertex_count().min(500)).max(10));
+        .unwrap_or_else(|| working_mesh.vertex_count().clamp(10, 500));
 
     let control_indices = select_control_points(&working_mesh, num_control_points);
     let num_controls = control_indices.len();
@@ -1092,7 +1092,7 @@ fn regularize_displacements(
 
     // Build neighborhood based on spatial proximity
     // For each control point, find k nearest neighbors
-    let k = (n / 4).max(3).min(10);
+    let k = (n / 4).clamp(3, 10);
 
     let mut neighbors: Vec<Vec<usize>> = Vec::with_capacity(n);
     for i in 0..n {

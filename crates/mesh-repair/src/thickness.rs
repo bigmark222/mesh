@@ -155,12 +155,12 @@ impl std::fmt::Display for ThicknessResult {
 
 /// Axis-aligned bounding box for spatial acceleration.
 #[derive(Debug, Clone, Copy)]
-struct AABB {
+struct Aabb {
     min: Point3<f64>,
     max: Point3<f64>,
 }
 
-impl AABB {
+impl Aabb {
     /// Create AABB from a triangle.
     fn from_triangle(tri: &Triangle) -> Self {
         let min = Point3::new(
@@ -217,11 +217,11 @@ impl AABB {
 #[derive(Debug)]
 enum BvhNode {
     Leaf {
-        aabb: AABB,
+        aabb: Aabb,
         face_idx: usize,
     },
     Internal {
-        aabb: AABB,
+        aabb: Aabb,
         left: Box<BvhNode>,
         right: Box<BvhNode>,
     },
@@ -237,15 +237,15 @@ impl BvhNode {
         if indices.len() == 1 {
             let idx = indices[0];
             return Some(BvhNode::Leaf {
-                aabb: AABB::from_triangle(&triangles[idx]).expand(epsilon),
+                aabb: Aabb::from_triangle(&triangles[idx]).expand(epsilon),
                 face_idx: idx,
             });
         }
 
         // Compute bounding box of all triangles
-        let mut combined_aabb = AABB::from_triangle(&triangles[indices[0]]);
+        let mut combined_aabb = Aabb::from_triangle(&triangles[indices[0]]);
         for &idx in indices.iter().skip(1) {
-            let tri_aabb = AABB::from_triangle(&triangles[idx]);
+            let tri_aabb = Aabb::from_triangle(&triangles[idx]);
             combined_aabb.min.x = combined_aabb.min.x.min(tri_aabb.min.x);
             combined_aabb.min.y = combined_aabb.min.y.min(tri_aabb.min.y);
             combined_aabb.min.z = combined_aabb.min.z.min(tri_aabb.min.z);
@@ -301,7 +301,7 @@ impl BvhNode {
         }
     }
 
-    fn aabb(&self) -> &AABB {
+    fn aabb(&self) -> &Aabb {
         match self {
             BvhNode::Leaf { aabb, .. } => aabb,
             BvhNode::Internal { aabb, .. } => aabb,
@@ -353,6 +353,7 @@ fn ray_triangle_intersect(
 }
 
 /// Trace a ray through the BVH and find the closest intersection.
+#[allow(clippy::too_many_arguments)]
 fn trace_ray(
     node: &BvhNode,
     origin: &Point3<f64>,
@@ -380,11 +381,10 @@ fn trace_ray(
                 return None;
             }
 
-            if let Some(t) = ray_triangle_intersect(origin, direction, &triangles[*face_idx], epsilon) {
-                if t <= max_dist {
+            if let Some(t) = ray_triangle_intersect(origin, direction, &triangles[*face_idx], epsilon)
+                && t <= max_dist {
                     return Some((t, *face_idx));
                 }
-            }
             None
         }
         BvhNode::Internal { left, right, .. } => {
@@ -1037,7 +1037,7 @@ mod tests {
 
     #[test]
     fn test_aabb_ray_intersect() {
-        let aabb = AABB {
+        let aabb = Aabb {
             min: Point3::new(0.0, 0.0, 0.0),
             max: Point3::new(1.0, 1.0, 1.0),
         };

@@ -1648,8 +1648,8 @@ mod tests {
 
         let result = generate_lattice(&params, bounds);
 
-        assert!(result.mesh.vertices.len() > 0);
-        assert!(result.mesh.faces.len() > 0);
+        assert!(!result.mesh.vertices.is_empty());
+        assert!(!result.mesh.faces.is_empty());
         assert!(result.cell_count > 0);
         assert!(result.total_strut_length > 0.0);
     }
@@ -1661,8 +1661,8 @@ mod tests {
 
         let result = generate_lattice(&params, bounds);
 
-        assert!(result.mesh.vertices.len() > 0);
-        assert!(result.mesh.faces.len() > 0);
+        assert!(!result.mesh.vertices.is_empty());
+        assert!(!result.mesh.faces.is_empty());
     }
 
     #[test]
@@ -1675,7 +1675,7 @@ mod tests {
         let result = generate_lattice(&params, bounds);
 
         // Gyroid should produce a mesh
-        assert!(result.mesh.vertices.len() > 0);
+        assert!(!result.mesh.vertices.is_empty());
     }
 
     #[test]
@@ -1725,8 +1725,8 @@ mod tests {
             6,
         );
 
-        assert!(mesh.vertices.len() > 0);
-        assert!(mesh.faces.len() > 0);
+        assert!(!mesh.vertices.is_empty());
+        assert!(!mesh.faces.is_empty());
     }
 
     // Infill generation tests
@@ -1925,7 +1925,7 @@ mod tests {
         let result = generate_infill(&cube, &params);
 
         // Hollow should have shell but no lattice
-        assert!(result.shell.faces.len() > 0);
+        assert!(!result.shell.faces.is_empty());
         assert!(result.lattice.faces.is_empty());
         assert!((result.actual_density - 0.0).abs() < 1e-10);
     }
@@ -1940,7 +1940,7 @@ mod tests {
         let result = generate_infill(&cube, &params);
 
         // Should have both shell and lattice
-        assert!(result.shell.faces.len() > 0);
+        assert!(!result.shell.faces.is_empty());
         // Note: lattice may be empty if trimmed to interior doesn't include any complete cells
         // For a 20mm cube with 1mm shell and 4mm cells, there should be interior room
         assert!(result.mesh.faces.len() >= result.shell.faces.len());
@@ -2156,8 +2156,8 @@ mod tests {
         let result = generate_lattice(&params, bounds);
 
         // Should generate a valid lattice
-        assert!(result.mesh.vertices.len() > 0);
-        assert!(result.mesh.faces.len() > 0);
+        assert!(!result.mesh.vertices.is_empty());
+        assert!(!result.mesh.faces.is_empty());
         assert!(result.cell_count > 0);
     }
 }

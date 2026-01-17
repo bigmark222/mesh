@@ -327,6 +327,7 @@ mod tests {
             adaptive_resolution: false,
             coarse_voxel_multiplier: 4.0,
             refinement_distance_mm: 5.0,
+            use_gpu: false,
         };
 
         let result = apply_sdf_offset(&mesh, &params).unwrap();

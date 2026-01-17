@@ -11,7 +11,3 @@ mod adaptive;
 
 pub use sdf::{apply_sdf_offset, SdfOffsetResult, SdfOffsetStats};
 pub use grid::SdfOffsetParams;
-pub use adaptive::{
-    AdaptiveSdfParams, AdaptiveGridStats, AdaptiveGridResult,
-    create_adaptive_grid, interpolate_offsets_adaptive,
-};

@@ -56,6 +56,7 @@ pub fn info(msg: &str, format: OutputFormat, quiet: bool) {
 }
 
 /// Print a warning message.
+#[allow(dead_code)] // Will be used when CLI gains validation warnings
 pub fn warning(msg: &str, format: OutputFormat, quiet: bool) {
     if quiet {
         return;

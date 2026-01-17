@@ -92,7 +92,7 @@ pub fn run(input: &Path, check_printable: bool, min_thickness: f64, cli: &Cli) -
     };
 
     let valid = issues.iter().all(|i| i.severity != "error")
-        && printability.as_ref().map_or(true, |p| p.printable);
+        && printability.as_ref().is_none_or(|p| p.printable);
 
     let result = ValidationResult {
         path: input.display().to_string(),

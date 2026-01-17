@@ -49,6 +49,7 @@ impl Default for AdaptiveSdfParams {
     }
 }
 
+#[allow(dead_code)] // Public API constructors for library consumers
 impl AdaptiveSdfParams {
     /// Create params optimized for large meshes (more aggressive coarsening).
     pub fn for_large_meshes() -> Self {
@@ -82,6 +83,7 @@ impl AdaptiveSdfParams {
 
 /// Statistics from adaptive grid creation.
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Public struct fields for library consumers
 pub struct AdaptiveGridStats {
     /// Coarse grid dimensions.
     pub coarse_dims: [usize; 3],

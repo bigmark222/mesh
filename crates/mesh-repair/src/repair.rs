@@ -30,6 +30,7 @@ use crate::{Mesh, Triangle};
 /// };
 /// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "pipeline-config", derive(serde::Serialize, serde::Deserialize))]
 pub struct RepairParams {
     /// Distance threshold for vertex welding.
     ///
@@ -768,11 +769,10 @@ pub fn repair_mesh_with_config(mesh: &mut Mesh, params: &RepairParams) -> MeshRe
     }
 
     // 5. Fix winding order (optional)
-    if params.fix_winding {
-        if let Err(e) = fix_winding_order(mesh) {
+    if params.fix_winding
+        && let Err(e) = fix_winding_order(mesh) {
             warn!("Could not fix winding order: {:?}", e);
         }
-    }
 
     // 6. Fill holes (optional)
     if params.fill_holes {

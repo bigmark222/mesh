@@ -1064,7 +1064,7 @@ mod tests {
 
         // Outer vertex 0 (bottom) should be offset ~1mm from inner vertex 0
         let inner_v0 = shell.vertices[0].position;
-        let outer_v0 = shell.vertices[inner_vertex_count + 0].position;
+        let outer_v0 = shell.vertices[inner_vertex_count].position;
         let offset_0 = (outer_v0 - inner_v0).norm();
 
         // Outer vertex 4 (top) should be offset ~3mm from inner vertex 4

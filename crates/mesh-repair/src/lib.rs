@@ -92,7 +92,27 @@
 //! mesh.save("print_ready.3mf").unwrap();
 //! ```
 //!
-//! ## Processing 3D Scans
+//! ## Processing 3D Scans (with RepairBuilder)
+//!
+//! ```no_run
+//! use mesh_repair::{Mesh, RepairBuilder};
+//!
+//! let mesh = Mesh::load("scan.ply").unwrap();
+//!
+//! // Use fluent builder API for repair operations
+//! let result = RepairBuilder::new(mesh)
+//!     .for_scans()                        // Use scan-optimized settings
+//!     .remove_small_components(100)       // Remove debris < 100 faces
+//!     .build()
+//!     .unwrap();
+//!
+//! println!("Welded {} vertices, removed {} degenerates",
+//!     result.vertices_welded, result.degenerates_removed);
+//!
+//! result.mesh.save("processed_scan.obj").unwrap();
+//! ```
+//!
+//! ## Processing 3D Scans (with params)
 //!
 //! ```no_run
 //! use mesh_repair::{Mesh, RepairParams};
@@ -258,7 +278,11 @@
 //! Note: STL format does not preserve vertex indices because it stores triangles
 //! independently. OBJ, 3MF, and PLY use indexed storage and preserve vertex order.
 
+mod builder;
 mod error;
+mod fitting;
+mod pipeline;
+pub mod tracing_ext;
 mod types;
 
 #[cfg(test)]
@@ -300,7 +324,9 @@ pub mod step;
 pub use step::{export_step, export_step_to_string, StepExportParams, StepExportResult};
 
 // Re-export core types at crate root
-pub use error::{MeshError, MeshResult, ValidationIssue};
+pub use error::{
+    ErrorCode, IssueSeverity, MeshError, MeshResult, RecoverySuggestion, ValidationIssue,
+};
 pub use types::{Mesh, Triangle, Vertex, VertexColor};
 
 // Re-export adjacency at crate root for convenience
@@ -324,6 +350,15 @@ pub use repair::{
     remove_degenerate_triangles, remove_degenerate_triangles_enhanced,
     weld_vertices, remove_unreferenced_vertices,
 };
+
+// Builder API
+pub use builder::{RepairBuilder, RepairResult};
+pub use fitting::{FittingBuilder, FittingResult};
+pub use pipeline::{IntoPipeline, Pipeline, PipelineResult};
+
+// Pipeline serialization (requires pipeline-config feature)
+#[cfg(feature = "pipeline-config")]
+pub use pipeline::{PipelineConfig, PipelineConfigError, PipelineStep};
 pub use validate::{
     validate_mesh, validate_mesh_data, validate_mesh_data_strict,
     MeshReport, DataValidationResult, ValidationOptions,
@@ -396,7 +431,8 @@ pub use multiscan::{
 
 // Re-export printability/manufacturing types
 pub use printability::{
-    auto_orient_for_printing, detect_support_regions, validate_for_printing, IssueSeverity,
+    auto_orient_for_printing, detect_support_regions, validate_for_printing,
+    IssueSeverity as PrintIssueSeverity,
     OrientParams, OrientResult, OverhangRegion, PrintIssue, PrintIssueType, PrintTechnology,
     PrintValidation, PrinterConfig, SupportAnalysis, SupportRegion, ThinWallRegion,
 };
@@ -426,6 +462,12 @@ pub use pointcloud::{
 pub use progress::{
     estimate_operation_time, OperationEstimate, OperationType, Progress, ProgressCallback,
     ProgressReporter, ProgressTracker, SharedProgressTracker,
+};
+
+// Re-export tracing extensions for structured logging and performance monitoring
+pub use tracing_ext::{
+    log_io_operation, log_mesh_stats, log_mesh_stats_detailed, log_perf_section, log_progress,
+    log_repair_result, log_validation_result, OperationTimer,
 };
 
 // Convenience methods on Mesh

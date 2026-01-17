@@ -76,14 +76,10 @@ pub fn fix_winding_order(mesh: &mut Mesh) -> MeshResult<()> {
                         // Current face traverses edge as v0 -> v1
                         // For consistent winding, neighbor should traverse as v1 -> v0
                         // (opposite direction on the shared edge)
-                        let should_flip = match neighbor_dir {
-                            Some(same_dir) => {
-                                // If neighbor has same direction, one of them needs flipping
-                                // Since current face is "correct", flip the neighbor
-                                same_dir
-                            }
-                            None => false, // Edge not found (shouldn't happen)
-                        };
+                        // If neighbor has same direction, one of them needs flipping
+                        // Since current face is "correct", flip the neighbor
+                        // (Edge not found shouldn't happen, defaults to no flip)
+                        let should_flip = neighbor_dir.unwrap_or_default();
 
                         let actual_flip = if component_flips.contains(&face_idx) {
                             // Current face was itself flipped, so invert the decision

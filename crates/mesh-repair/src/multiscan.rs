@@ -598,11 +598,10 @@ fn handle_overlaps(
     for (old_idx, vertex) in merged.vertices.iter().enumerate() {
         if is_duplicate[old_idx] {
             // Map to the vertex it's a duplicate of
-            if let Some(original_idx) = duplicate_of[old_idx] {
-                if let Some(&new_idx) = vertex_map.get(&original_idx) {
+            if let Some(original_idx) = duplicate_of[old_idx]
+                && let Some(&new_idx) = vertex_map.get(&original_idx) {
                     vertex_map.insert(old_idx, new_idx);
                 }
-            }
         } else {
             let new_idx = result.vertices.len();
             vertex_map.insert(old_idx, new_idx);
@@ -803,7 +802,7 @@ mod tests {
     #[test]
     fn test_merge_single_scan() {
         let mesh = create_test_triangle(0.0, 0.0);
-        let result = merge_scans(&[mesh.clone()], &MergeParams::default());
+        let result = merge_scans(std::slice::from_ref(&mesh), &MergeParams::default());
 
         assert_eq!(result.scans_merged, 1);
         assert_eq!(result.mesh.vertices.len(), 3);

@@ -31,6 +31,11 @@ pub struct SdfOffsetParams {
     /// Only used when `adaptive_resolution` is true.
     /// Default: 5.0mm
     pub refinement_distance_mm: f64,
+    /// Use GPU acceleration if available (requires `gpu` feature).
+    /// When enabled and a GPU is available, SDF computation will use
+    /// GPU compute shaders for significant speedup on large meshes.
+    /// Falls back to CPU if GPU is unavailable or initialization fails.
+    pub use_gpu: bool,
 }
 
 impl Default for SdfOffsetParams {
@@ -43,6 +48,7 @@ impl Default for SdfOffsetParams {
             adaptive_resolution: false,
             coarse_voxel_multiplier: 4.0,
             refinement_distance_mm: 5.0,
+            use_gpu: false,
         }
     }
 }
@@ -61,6 +67,7 @@ impl SdfOffsetParams {
             adaptive_resolution: true,
             coarse_voxel_multiplier: 4.0,
             refinement_distance_mm: 5.0,
+            use_gpu: false,
         }
     }
 
@@ -74,6 +81,7 @@ impl SdfOffsetParams {
             adaptive_resolution: true,
             coarse_voxel_multiplier: 3.0,
             refinement_distance_mm: 8.0,
+            use_gpu: false,
         }
     }
 
@@ -87,7 +95,17 @@ impl SdfOffsetParams {
             adaptive_resolution: true,
             coarse_voxel_multiplier: 5.0,
             refinement_distance_mm: 4.0,
+            use_gpu: false,
         }
+    }
+
+    /// Create params with GPU acceleration enabled.
+    ///
+    /// Requires the `gpu` feature to be enabled. Falls back to CPU
+    /// automatically if no GPU is available.
+    pub fn with_gpu(mut self) -> Self {
+        self.use_gpu = true;
+        self
     }
 
     /// Get the coarse voxel size when adaptive resolution is enabled.
@@ -111,6 +129,7 @@ pub struct SdfGrid {
     pub offsets: Vec<f32>,
 }
 
+#[allow(dead_code)] // Public API methods for library consumers
 impl SdfGrid {
     /// Create a grid sized to contain mesh with padding.
     pub fn from_mesh_bounds(
@@ -190,11 +209,38 @@ impl SdfGrid {
         )
     }
 
-    /// Compute SDF values using mesh_to_sdf crate.
+    /// Compute SDF values using mesh_to_sdf crate (CPU).
     pub fn compute_sdf(&mut self, mesh: &Mesh) {
+        self.compute_sdf_cpu(mesh);
+    }
+
+    /// Compute SDF values with optional GPU acceleration.
+    ///
+    /// When `use_gpu` is true and the `gpu` feature is enabled, this will
+    /// attempt to use GPU compute shaders. Falls back to CPU if GPU is
+    /// unavailable or the feature is not enabled.
+    pub fn compute_sdf_with_params(&mut self, mesh: &Mesh, params: &SdfOffsetParams) {
+        #[cfg(feature = "gpu")]
+        if params.use_gpu {
+            if self.try_compute_sdf_gpu(mesh) {
+                return;
+            }
+            info!("GPU unavailable or failed, falling back to CPU");
+        }
+
+        #[cfg(not(feature = "gpu"))]
+        if params.use_gpu {
+            info!("GPU feature not enabled, using CPU");
+        }
+
+        self.compute_sdf_cpu(mesh);
+    }
+
+    /// Compute SDF values using mesh_to_sdf crate (CPU implementation).
+    fn compute_sdf_cpu(&mut self, mesh: &Mesh) {
         use mesh_to_sdf::{generate_grid_sdf, Grid, SignMethod, Topology};
 
-        info!(vertices = mesh.vertices.len(), "Computing SDF");
+        info!(vertices = mesh.vertices.len(), "Computing SDF (CPU)");
 
         // Convert Mesh to mesh_to_sdf format
         let vertices: Vec<[f32; 3]> = mesh
@@ -233,8 +279,38 @@ impl SdfGrid {
         debug!(
             min_sdf = self.values.iter().copied().fold(f32::INFINITY, f32::min),
             max_sdf = self.values.iter().copied().fold(f32::NEG_INFINITY, f32::max),
-            "SDF computed"
+            "SDF computed (CPU)"
         );
+    }
+
+    /// Try to compute SDF using GPU acceleration.
+    ///
+    /// Returns true if GPU computation succeeded, false otherwise.
+    #[cfg(feature = "gpu")]
+    fn try_compute_sdf_gpu(&mut self, mesh: &Mesh) -> bool {
+        use mesh_gpu::{try_compute_sdf_gpu, GpuSdfParams};
+
+        let params = GpuSdfParams {
+            dims: self.dims,
+            origin: [
+                self.origin.x as f32,
+                self.origin.y as f32,
+                self.origin.z as f32,
+            ],
+            voxel_size: self.voxel_size as f32,
+        };
+
+        match try_compute_sdf_gpu(mesh, &params) {
+            Some(result) => {
+                info!(
+                    time_ms = result.compute_time_ms,
+                    "SDF computed (GPU)"
+                );
+                self.values = result.values;
+                true
+            }
+            None => false,
+        }
     }
 
     /// Interpolate offset values from mesh vertices into the grid.
@@ -428,5 +504,18 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(params.coarse_voxel_size_mm(), 4.0);
+    }
+
+    #[test]
+    fn test_sdf_offset_params_with_gpu() {
+        let params = SdfOffsetParams::default().with_gpu();
+        assert!(params.use_gpu);
+        assert!(!params.adaptive_resolution); // Should preserve other settings
+    }
+
+    #[test]
+    fn test_sdf_offset_params_gpu_default() {
+        let params = SdfOffsetParams::default();
+        assert!(!params.use_gpu); // GPU disabled by default
     }
 }

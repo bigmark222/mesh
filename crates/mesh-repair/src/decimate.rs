@@ -10,6 +10,7 @@ use std::cmp::Ordering;
 
 /// Parameters for mesh decimation.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "pipeline-config", derive(serde::Serialize, serde::Deserialize))]
 pub struct DecimateParams {
     /// Target number of triangles. If None, uses target_ratio instead.
     pub target_triangles: Option<usize>,
@@ -38,7 +39,7 @@ impl Default for DecimateParams {
             target_ratio: 0.5,
             preserve_boundary: true,
             preserve_sharp_features: false,
-            sharp_angle_threshold: 0.5236, // 30 degrees
+            sharp_angle_threshold: std::f64::consts::FRAC_PI_6, // 30 degrees
             max_error: None,
             boundary_penalty: 10.0,
         }
@@ -646,23 +647,21 @@ fn is_collapse_valid(
     let mut neighbors_v1 = HashSet::new();
     let mut neighbors_v2 = HashSet::new();
 
-    for face_opt in faces {
-        if let Some(face) = face_opt {
-            let has_v1 = face.contains(&v1);
-            let has_v2 = face.contains(&v2);
+    for face in faces.iter().flatten() {
+        let has_v1 = face.contains(&v1);
+        let has_v2 = face.contains(&v2);
 
-            if has_v1 {
-                for &vi in face {
-                    if vi != v1 {
-                        neighbors_v1.insert(vi);
-                    }
+        if has_v1 {
+            for &vi in face {
+                if vi != v1 {
+                    neighbors_v1.insert(vi);
                 }
             }
-            if has_v2 {
-                for &vi in face {
-                    if vi != v2 {
-                        neighbors_v2.insert(vi);
-                    }
+        }
+        if has_v2 {
+            for &vi in face {
+                if vi != v2 {
+                    neighbors_v2.insert(vi);
                 }
             }
         }
@@ -678,6 +677,7 @@ fn is_collapse_valid(
 }
 
 /// Re-queue all edges involving a vertex after it has been updated.
+#[allow(clippy::too_many_arguments)]
 fn requeue_vertex_edges(
     v: u32,
     vertices: &[Option<Vertex>],
@@ -692,15 +692,14 @@ fn requeue_vertex_edges(
     // Find all neighbors of v
     let mut neighbors = HashSet::new();
     for face_opt in faces {
-        if let Some(face) = face_opt {
-            if face.contains(&v) {
+        if let Some(face) = face_opt
+            && face.contains(&v) {
                 for &vi in face {
                     if vi != v && vertices[vi as usize].is_some() {
                         neighbors.insert(vi);
                     }
                 }
             }
-        }
     }
 
     // Create a temporary mesh-like structure for cost computation
@@ -997,8 +996,8 @@ fn build_final_mesh(
     // Compact faces with remapped indices
     let mut new_faces = Vec::new();
     for face_opt in faces {
-        if let Some(face) = face_opt {
-            if let (Some(&i0), Some(&i1), Some(&i2)) = (
+        if let Some(face) = face_opt
+            && let (Some(&i0), Some(&i1), Some(&i2)) = (
                 vertex_map.get(&face[0]),
                 vertex_map.get(&face[1]),
                 vertex_map.get(&face[2]),
@@ -1008,7 +1007,6 @@ fn build_final_mesh(
                     new_faces.push([i0, i1, i2]);
                 }
             }
-        }
     }
 
     Mesh {
@@ -1114,8 +1112,9 @@ mod tests {
         // The mesh should preserve most of its structure.
         // Note: this is a small mesh with limited collapse options
         assert_eq!(result.original_triangles, 2);
-        // At minimum, we should have statistics recorded
-        assert!(result.collapses_performed + result.collapses_rejected >= 0);
+        // Verify statistics were recorded (at minimum, some attempts were made)
+        // Note: the sum is always >= 0 for usize, so we just verify the fields exist
+        let _total_attempts = result.collapses_performed + result.collapses_rejected;
     }
 
     #[test]
@@ -1189,7 +1188,7 @@ mod tests {
         let result = decimate_mesh(&mesh, &DecimateParams::default());
         assert_eq!(result.original_triangles, 1);
         // With boundary preservation, single triangle stays
-        assert!(result.mesh.faces.len() >= 1 || result.collapses_performed == 0);
+        assert!(!result.mesh.faces.is_empty() || result.collapses_performed == 0);
     }
 
     #[test]

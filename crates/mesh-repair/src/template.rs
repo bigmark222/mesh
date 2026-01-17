@@ -386,7 +386,7 @@ impl ControlRegion {
                     .filter(|(_, v)| {
                         let to_point = v.position - axis_start;
                         let t = to_point.dot(&axis) / axis_len_sq;
-                        if t < 0.0 || t > 1.0 {
+                        if !(0.0..=1.0).contains(&t) {
                             return false;
                         }
                         let projection = axis_start + axis * t;
@@ -917,7 +917,7 @@ mod tests {
         let result = template.fit_to_scan(&scan).unwrap();
 
         // After fitting, the mesh should be closer to the scan
-        assert!(result.stages.len() >= 1);
+        assert!(!result.stages.is_empty());
     }
 
     #[test]

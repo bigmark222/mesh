@@ -189,7 +189,7 @@ pub fn analyze_boundary_with_adjacency(adjacency: &MeshAdjacency) -> BoundaryAna
     }
 
     // Sort loops by size (largest first) for predictable ordering
-    loops.sort_by(|a, b| b.edge_count().cmp(&a.edge_count()));
+    loops.sort_by_key(|b| std::cmp::Reverse(b.edge_count()));
 
     let is_valid = non_manifold_vertices.is_empty() && orphan_edges.is_empty();
 

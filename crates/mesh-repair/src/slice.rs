@@ -1153,7 +1153,7 @@ pub fn export_3mf_slices(
     zip.start_file("[Content_Types].xml", options)
         .map_err(|e| crate::MeshError::IoWrite {
             path: output_path.to_path_buf(),
-            source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+            source: std::io::Error::other(e.to_string()),
         })?;
     zip.write_all(SLICE_CONTENT_TYPES_XML.as_bytes())
         .map_err(|e| crate::MeshError::IoWrite {
@@ -1165,7 +1165,7 @@ pub fn export_3mf_slices(
     zip.start_file("_rels/.rels", options)
         .map_err(|e| crate::MeshError::IoWrite {
             path: output_path.to_path_buf(),
-            source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+            source: std::io::Error::other(e.to_string()),
         })?;
     zip.write_all(SLICE_RELS_XML.as_bytes())
         .map_err(|e| crate::MeshError::IoWrite {
@@ -1177,7 +1177,7 @@ pub fn export_3mf_slices(
     zip.start_file("2D/2dmodel.model", options)
         .map_err(|e| crate::MeshError::IoWrite {
             path: output_path.to_path_buf(),
-            source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+            source: std::io::Error::other(e.to_string()),
         })?;
 
     let slice_xml = generate_slice_stack_xml(result);
@@ -1189,7 +1189,7 @@ pub fn export_3mf_slices(
 
     zip.finish().map_err(|e| crate::MeshError::IoWrite {
         path: output_path.to_path_buf(),
-        source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+        source: std::io::Error::other(e.to_string()),
     })?;
 
     Ok(())

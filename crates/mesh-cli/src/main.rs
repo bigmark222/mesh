@@ -2,12 +2,31 @@
 //!
 //! This tool provides access to mesh-repair and mesh-shell functionality
 //! from the command line, suitable for scripting and CI/CD pipelines.
+//!
+//! # Logging
+//!
+//! Set the `RUST_LOG` environment variable to control log output:
+//! - `RUST_LOG=mesh_repair=info` - Basic operation logging
+//! - `RUST_LOG=mesh_repair=debug` - Detailed progress logging
+//! - `RUST_LOG=mesh_repair::timing=debug` - Performance timing
+//! - `RUST_LOG=debug` - All debug output
+//!
+//! # Example
+//!
+//! ```bash
+//! # Basic repair with info logging
+//! RUST_LOG=mesh_repair=info mesh repair input.stl -o output.stl
+//!
+//! # Debug output for troubleshooting
+//! RUST_LOG=debug mesh validate input.stl
+//! ```
 
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 mod commands;
 mod output;
@@ -31,6 +50,10 @@ struct Cli {
     /// Suppress all non-error output
     #[arg(long, short, global = true)]
     quiet: bool,
+
+    /// Increase output verbosity (-v for info, -vv for debug, -vvv for trace)
+    #[arg(long, short, global = true, action = clap::ArgAction::Count)]
+    verbose: u8,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -184,8 +207,44 @@ pub enum ShellDirection {
     Both,
 }
 
+/// Initialize the tracing subscriber based on verbosity level.
+fn init_tracing(verbose: u8, quiet: bool) {
+    // If quiet, don't initialize any tracing
+    if quiet {
+        return;
+    }
+
+    // Determine log level based on verbosity flag
+    // Check RUST_LOG first, then fall back to -v flags
+    let filter = if std::env::var("RUST_LOG").is_ok() {
+        EnvFilter::from_default_env()
+    } else {
+        let level = match verbose {
+            0 => "warn",
+            1 => "mesh_repair=info,mesh_shell=info",
+            2 => "mesh_repair=debug,mesh_shell=debug",
+            _ => "trace",
+        };
+        EnvFilter::try_new(level).unwrap_or_else(|_| EnvFilter::new("warn"))
+    };
+
+    // Initialize the subscriber
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_writer(std::io::stderr).compact())
+        .with(filter)
+        .init();
+}
+
 fn main() -> Result<()> {
+    // Install miette's panic hook for better error display
+    // This makes panics show nicer error reports in development
+    #[cfg(debug_assertions)]
+    miette::set_panic_hook();
+
     let cli = Cli::parse();
+
+    // Initialize tracing
+    init_tracing(cli.verbose, cli.quiet);
 
     let result = match &cli.command {
         Commands::Info { input, detailed } => info::run(input, *detailed, &cli),
@@ -241,9 +300,21 @@ fn main() -> Result<()> {
 
     if let Err(e) = &result {
         if !cli.quiet {
-            eprintln!("{}: {}", "Error".red().bold(), e);
-            for cause in e.chain().skip(1) {
-                eprintln!("  {}: {}", "Caused by".yellow(), cause);
+            // Check if the error is a miette Diagnostic for enhanced display
+            if let Some(mesh_err) = e.downcast_ref::<mesh_repair::MeshError>() {
+                // Display error with code and help text
+                eprintln!("{}: {}", "Error".red().bold(), mesh_err);
+                eprintln!("  {}: {}", "Code".cyan(), mesh_err.code());
+                eprintln!("  {}: {}", "Suggestion".green(), mesh_err.recovery_suggestion());
+                if let Some(location) = mesh_err.location() {
+                    eprintln!("  {}: {}", "Location".yellow(), location);
+                }
+            } else {
+                // Fall back to standard error display
+                eprintln!("{}: {}", "Error".red().bold(), e);
+                for cause in e.chain().skip(1) {
+                    eprintln!("  {}: {}", "Caused by".yellow(), cause);
+                }
             }
         }
         std::process::exit(1);

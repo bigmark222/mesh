@@ -16,6 +16,7 @@ use crate::{Mesh, MeshAdjacency, Vertex};
 
 /// Parameters for isotropic remeshing.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "pipeline-config", derive(serde::Serialize, serde::Deserialize))]
 pub struct RemeshParams {
     /// Target edge length for the remeshed output.
     /// All edges will tend toward this length.
@@ -91,10 +92,12 @@ pub struct RemeshParams {
     /// Custom direction field for anisotropic remeshing.
     /// Maps vertex index to preferred direction vector.
     /// If None, uses principal curvature directions.
+    #[cfg_attr(feature = "pipeline-config", serde(skip))]
     pub direction_field: Option<HashMap<u32, Vector3<f64>>>,
 
     /// Preserve feature edges during remeshing (overrides preserve_sharp_edges).
     /// When set, these specific edges will be preserved regardless of dihedral angle.
+    #[cfg_attr(feature = "pipeline-config", serde(skip))]
     pub preserve_feature_edges: Option<HashSet<(u32, u32)>>,
 }
 
@@ -954,12 +957,7 @@ fn compute_valences(faces: &[[u32; 3]]) -> HashMap<u32, usize> {
 
 /// Find the vertex opposite to edge (v0, v1) in a face.
 fn find_opposite_vertex(face: &[u32; 3], v0: u32, v1: u32) -> Option<u32> {
-    for &v in face {
-        if v != v0 && v != v1 {
-            return Some(v);
-        }
-    }
-    None
+    face.iter().find(|&&v| v != v0 && v != v1).copied()
 }
 
 /// Check if an edge flip would create valid (non-inverted) triangles.
@@ -2069,6 +2067,7 @@ pub fn remesh_anisotropic(mesh: &Mesh, params: &RemeshParams) -> RemeshResult {
 }
 
 /// Split edges based on anisotropic length criteria.
+#[allow(clippy::too_many_arguments)]
 fn split_long_edges_anisotropic(
     mesh: &Mesh,
     adj: &MeshAdjacency,
@@ -2190,6 +2189,7 @@ fn split_long_edges_anisotropic(
 }
 
 /// Collapse edges based on anisotropic length criteria.
+#[allow(clippy::too_many_arguments)]
 fn collapse_short_edges_anisotropic(
     mesh: &Mesh,
     adj: &MeshAdjacency,
@@ -2358,8 +2358,8 @@ fn flip_edges_for_anisotropy(
         let new_alignment = new_edge.dot(&avg_dir).abs();
 
         // Flip if new edge is better aligned with direction field
-        if new_alignment > current_alignment + 0.1 {
-            if is_valid_flip(mesh, v0, v1, opp0, opp1) {
+        if new_alignment > current_alignment + 0.1
+            && is_valid_flip(mesh, v0, v1, opp0, opp1) {
                 let new_face0 = [opp0, opp1, v0];
                 let new_face1 = [opp1, opp0, v1];
 
@@ -2368,7 +2368,6 @@ fn flip_edges_for_anisotropy(
 
                 flip_count += 1;
             }
-        }
     }
 
     (Mesh { vertices: mesh.vertices.clone(), faces }, flip_count)
@@ -2678,7 +2677,7 @@ mod tests {
 
         // Should produce a remeshed result
         assert!(result.final_triangles > 0);
-        assert!(result.mesh.faces.len() > 0);
+        assert!(!result.mesh.faces.is_empty());
     }
 
     #[test]
@@ -2783,8 +2782,10 @@ mod tests {
     #[test]
     fn test_remesh_zero_iterations() {
         let mesh = make_single_triangle();
-        let mut params = RemeshParams::default();
-        params.iterations = 0;
+        let params = RemeshParams {
+            iterations: 0,
+            ..Default::default()
+        };
 
         let result = remesh_isotropic(&mesh, &params);
 
@@ -2875,7 +2876,7 @@ mod tests {
         let result = detect_feature_edges(&mesh, std::f64::consts::PI / 4.0);
 
         // The shared edge should be detected as sharp (90 degree angle)
-        assert!(result.sharp_edges.len() > 0, "Should detect the sharp edge");
+        assert!(!result.sharp_edges.is_empty(), "Should detect the sharp edge");
     }
 
     #[test]
@@ -2887,7 +2888,7 @@ mod tests {
 
         // Cube has 12 edges, all should be sharp (90 degrees)
         assert!(
-            result.sharp_edges.len() > 0,
+            !result.sharp_edges.is_empty(),
             "Cube should have sharp edges"
         );
     }
@@ -2996,8 +2997,8 @@ mod tests {
         let mesh = make_quad_as_triangles();
         let result = remesh_adaptive(&mesh, &RemeshParams::adaptive(2.0));
 
-        assert!(result.mesh.faces.len() > 0);
-        assert!(result.mesh.vertices.len() > 0);
+        assert!(!result.mesh.faces.is_empty());
+        assert!(!result.mesh.vertices.is_empty());
 
         // Topology should be valid
         for face in &result.mesh.faces {
@@ -3052,8 +3053,8 @@ mod tests {
         let mesh = make_quad_as_triangles();
         let result = remesh_anisotropic(&mesh, &RemeshParams::anisotropic_with_ratio(2.0, 2.0));
 
-        assert!(result.mesh.faces.len() > 0);
-        assert!(result.mesh.vertices.len() > 0);
+        assert!(!result.mesh.faces.is_empty());
+        assert!(!result.mesh.vertices.is_empty());
 
         // Topology should be valid
         for face in &result.mesh.faces {
@@ -3141,9 +3142,9 @@ mod tests {
         let params = RemeshParams::preserve_features();
         let result = remesh_isotropic(&mesh, &params);
 
-        // With preserve_features, should detect feature edges
+        // With preserve_features, the field should be populated
         // (the exact count depends on the mesh structure after remeshing)
-        assert!(result.feature_edges_detected >= 0);
+        let _edges = result.feature_edges_detected; // Verify field exists
     }
 
     // =========================================================================

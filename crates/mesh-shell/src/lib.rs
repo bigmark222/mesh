@@ -9,38 +9,88 @@
 //! - **Variable offset**: Per-vertex offset values for complex shapes
 //! - **Shell generation**: Create watertight shells with walls
 //! - **Rim generation**: Clean boundary edges connecting inner and outer surfaces
+//! - **Builder API**: Fluent builder pattern for ergonomic configuration
 //!
-//! # Example
+//! # Quick Start with ShellBuilder
+//!
+//! The recommended way to generate shells is using the [`ShellBuilder`]:
+//!
+//! ```no_run
+//! use mesh_repair::Mesh;
+//! use mesh_shell::ShellBuilder;
+//!
+//! let mesh = Mesh::load("scan.stl").unwrap();
+//!
+//! // Simple: generate shell with defaults
+//! let result = ShellBuilder::new(&mesh)
+//!     .offset(2.0)           // 2mm outward offset
+//!     .wall_thickness(2.5)   // 2.5mm walls
+//!     .build()
+//!     .unwrap();
+//!
+//! result.mesh.save("shell.3mf").unwrap();
+//! ```
+//!
+//! # Advanced Configuration
+//!
+//! ```no_run
+//! use mesh_repair::Mesh;
+//! use mesh_repair::progress::ProgressCallback;
+//! use mesh_shell::ShellBuilder;
+//!
+//! let mesh = Mesh::load("scan.stl").unwrap();
+//!
+//! let callback: ProgressCallback = Box::new(|progress| {
+//!     println!("{}%: {}", progress.percent(), progress.message);
+//!     true // continue
+//! });
+//!
+//! let result = ShellBuilder::new(&mesh)
+//!     .offset(3.0)
+//!     .wall_thickness(2.0)
+//!     .voxel_size(0.5)       // Fine resolution
+//!     .high_quality()         // SDF-based walls
+//!     .use_gpu(true)          // GPU acceleration
+//!     .with_progress(callback)
+//!     .build()
+//!     .unwrap();
+//! ```
+//!
+//! # Low-Level API
+//!
+//! For more control, use the low-level functions directly:
 //!
 //! ```no_run
 //! use mesh_repair::Mesh;
 //! use mesh_shell::{apply_sdf_offset, generate_shell, SdfOffsetParams, ShellParams};
 //!
-//! // Load and prepare mesh
 //! let mut mesh = Mesh::load("scan.stl").unwrap();
 //!
-//! // Set offset values on vertices (uses mesh.vertices[i].offset field)
+//! // Set offset values on vertices
 //! for v in &mut mesh.vertices {
-//!     v.offset = Some(2.0); // 2mm outward offset
+//!     v.offset = Some(2.0);
 //! }
 //!
-//! // Apply SDF offset to create the inner shell
+//! // Apply SDF offset
 //! let params = SdfOffsetParams::default();
 //! let result = apply_sdf_offset(&mesh, &params).unwrap();
-//! let inner_shell = result.mesh;
 //!
-//! // Generate printable shell with walls
+//! // Generate shell with walls
 //! let shell_params = ShellParams::default();
-//! let (shell, stats) = generate_shell(&inner_shell, &shell_params);
+//! let (shell, stats) = generate_shell(&result.mesh, &shell_params);
 //!
 //! shell.save("shell.3mf").unwrap();
 //! ```
 
+mod builder;
 mod error;
 mod offset;
 mod shell;
 
 pub use error::{ShellError, ShellResult};
+
+// Builder API (recommended)
+pub use builder::{ShellBuilder, ShellBuildResult};
 
 // SDF offset
 pub use offset::{

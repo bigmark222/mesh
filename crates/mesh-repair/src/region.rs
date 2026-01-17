@@ -654,6 +654,7 @@ impl RegionSelector {
     }
 
     /// Negate this selector.
+    #[allow(clippy::should_implement_trait)] // This is a builder method, not std::ops::Not
     pub fn not(self) -> Self {
         RegionSelector::Not(Box::new(self))
     }
@@ -749,7 +750,7 @@ impl RegionSelector {
                     .filter(|(_, v)| {
                         let to_point = v.position - axis_start;
                         let t = to_point.dot(&axis) / axis_len_sq;
-                        if t < 0.0 || t > 1.0 {
+                        if !(0.0..=1.0).contains(&t) {
                             return false;
                         }
                         let projection = axis_start + axis * t;
@@ -956,11 +957,10 @@ fn flood_fill_faces(
     // Flood-fill BFS
     while let Some(current_face) = queue.pop_front() {
         // Check face limit
-        if let Some(max_faces) = criteria.max_faces {
-            if selected.len() >= max_faces {
+        if let Some(max_faces) = criteria.max_faces
+            && selected.len() >= max_faces {
                 break;
             }
-        }
 
         let current_normal = match face_normals.get(current_face as usize) {
             Some(Some(n)) => *n,
@@ -993,11 +993,10 @@ fn flood_fill_faces(
                 }
 
                 // Check face limit before adding
-                if let Some(max_faces) = criteria.max_faces {
-                    if selected.len() >= max_faces {
+                if let Some(max_faces) = criteria.max_faces
+                    && selected.len() >= max_faces {
                         break;
                     }
-                }
 
                 // Get neighbor normal
                 let neighbor_normal = match face_normals.get(neighbor as usize) {
@@ -1013,14 +1012,13 @@ fn flood_fill_faces(
                 }
 
                 // Check distance criterion
-                if let (Some(max_dist), Some(seed_center)) = (criteria.max_distance, seed_centroid) {
-                    if let Some(Some(neighbor_centroid)) = face_centroids.get(neighbor as usize) {
+                if let (Some(max_dist), Some(seed_center)) = (criteria.max_distance, seed_centroid)
+                    && let Some(Some(neighbor_centroid)) = face_centroids.get(neighbor as usize) {
                         let dist = (neighbor_centroid - seed_center).norm();
                         if dist > max_dist {
                             continue;
                         }
                     }
-                }
 
                 // All criteria passed, add to selection
                 selected.insert(neighbor);

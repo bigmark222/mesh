@@ -4,6 +4,8 @@
 //! A connected component is a set of faces that are connected to each other through
 //! shared edges or vertices.
 
+use std::cmp::Reverse;
+
 use hashbrown::{HashMap, HashSet};
 use tracing::{debug, info};
 
@@ -136,7 +138,7 @@ pub fn find_connected_components(mesh: &Mesh) -> ComponentAnalysis {
     }
 
     // Sort components by size (largest first)
-    components.sort_by(|a, b| b.len().cmp(&a.len()));
+    components.sort_by_key(|c| Reverse(c.len()));
 
     let component_count = components.len();
     let largest_component_size = components.first().map(|c| c.len()).unwrap_or(0);
@@ -488,7 +490,7 @@ mod tests {
         let mesh = Mesh::new();
         let analysis = find_connected_components(&mesh);
         assert_eq!(analysis.component_count, 0);
-        assert!(analysis.is_connected() == false);
+        assert!(!analysis.is_connected());
     }
 
     #[test]
