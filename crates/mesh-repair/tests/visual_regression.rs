@@ -25,6 +25,7 @@ use mesh_repair::{
 
 /// A snapshot of mesh properties for regression testing.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct MeshSnapshot {
     vertex_count: usize,
     face_count: usize,
